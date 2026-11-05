@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="de" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simon – Endlos-Thermodrucker Atelier • simon.amzeichnen.ch</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Monospace & Retro Display Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=VT323&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            mono: ['"Space Mono"', 'monospace'],
+            receipt: ['"Courier Prime"', '"Space Mono"', 'monospace'],
+            screen: ['"VT323"', 'monospace']
+          },
+          colors: {
+            device: {
+              shell: '#d6d7d2',       // Warmes Industrie-Grau / Teenage Engineering Ästhetik
+              shellDark: '#b8b9b2',
+              bezel: '#23262b',
+              accent: '#ff5c35',       // TE-typisches Signal-Orange
+              yellow: '#f3b336',
+              lcd: '#1b221d',
+              lcdText: '#62d681'
+            },
+            thermal: {
+              paper: '#faf7ee',       // Cremiges Thermopapier
+              paperEdge: '#e5e0cf',
+              ink: '#141414',
+              faded: '#4f4d47'
+            }
+          },
+          boxShadow: {
+            'device': '0 20px 40px -15px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -2px 4px rgba(0,0,0,0.2)',
+            'paper-strip': '0 30px 60px -12px rgba(0, 0, 0, 0.4), 0 10px 20px -8px rgba(0, 0, 0, 0.25)',
+            'slot-inner': 'inset 0 8px 12px rgba(0,0,0,0.95), 0 1px 0 rgba(255,255,255,0.1)'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Gezackter unterer Papierrollen-Abschluss */
+    .receipt-bottom-serrated {
+      background: radial-gradient(circle at bottom, transparent 6px, #faf7ee 6.5px);
+      background-size: 14px 10px;
+    }
+
+    /* Perforationslinie */
+    .perforation-line {
+      background-image: repeating-linear-gradient(to right, #141414 0, #141414 6px, transparent 6px, transparent 12px);
+      height: 1px;
+      width: 100%;
+    }
+
+    /* Werkbank-Hintergrund */
+    .workbench-bg {
+      background-color: #0d0f12;
+      background-image: 
+        radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),
+        radial-gradient(rgba(255,255,255,0.03) 1px, #0d0f12 1px);
+      background-size: 24px 24px;
+      background-position: 0 0, 12px 12px;
+    }
+
+    /* Druckkopf-Vibration */
+    @keyframes printVibration {
+      0% { transform: translateY(0); }
+      25% { transform: translateY(-0.8px) rotate(-0.02deg); }
+      75% { transform: translateY(0.5px) rotate(0.02deg); }
+      100% { transform: translateY(0); }
+    }
+    .head-vibrating {
+      animation: printVibration 0.05s infinite linear;
+    }
+
+    /* Thermischer Pixel-Look */
+    .pixelated {
+      image-rendering: pixelated;
+    }
+
+    /* Interaktive Klick-Vorschau auf dem Thermopapier */
+    .dither-thumb-wrapper {
+      cursor: zoom-in;
+      transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease;
+    }
+    .dither-thumb-wrapper:hover {
+      transform: translateY(-2px) scale(1.015);
+      box-shadow: 0 8px 16px -4px rgba(0,0,0,0.25);
+    }
+  </style>
+</head>
+<body class="h-full w-full workbench-bg text-neutral-100 flex flex-col overflow-hidden font-mono select-none">
+
+  <!-- ================= OBERE GERÄTE-EINHEIT (THERMO-PRINTER CASING) ================= -->
+  <!-- Dieser Block ist oben fixiert. Aus seinem Schlitz an der Unterseite wird das Papier nach UNTEN herausgeschoben -->
+  <div id="printer-device" class="w-full bg-device-shell border-b-4 border-device-shellDark shadow-device z-30 flex flex-col items-center shrink-0 relative transition-transform">
+    
+    <!-- Gehäuse-Oberseite: Logos, Drehschalter, Buttons & LCD -->
+    <div class="w-full max-w-4xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-neutral-800">
+      
+      <!-- Logo / Modell-Branding -->
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-lg bg-device-accent flex items-center justify-center font-bold text-white text-xs shadow-md">
+          S
+        </div>
+        <div>
+          <div class="text-[9px] uppercase tracking-widest text-neutral-600 font-bold">simon.amzeichnen.ch</div>
+          <div class="text-sm font-bold tracking-tight text-neutral-900 flex items-center gap-2">
+            TP-652 CONTINUOUS
+            <span class="text-[9px] bg-neutral-800 text-white px-1.5 py-0.5 rounded font-mono">203 DPI</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Retro Miniscreen (OLED-Display) -->
+      <div class="bg-device-lcd px-3 py-1.5 rounded-lg border-2 border-neutral-700 shadow-inner flex items-center space-x-3 font-screen text-device-lcdText tracking-widest text-sm">
+        <div class="flex items-center gap-1.5">
+          <span id="lcd-status-dot" class="w-2 h-2 rounded-full bg-device-lcdText shadow-[0_0_8px_#62d681]"></span>
+          <span id="lcd-status-text">IDLE / READY</span>
+        </div>
+        <span class="text-neutral-600">|</span>
+        <div class="text-xs font-mono text-device-lcdText">
+          LENGTH: <span id="tape-meter">0.36m</span>
+        </div>
+      </div>
+
+      <!-- Schnelle Audio- & Auswurf-Schalter -->
+      <div class="flex items-center space-x-2">
+        <button id="btn-toggle-sound" class="px-2.5 py-1.5 rounded-lg bg-neutral-200 hover:bg-neutral-300 border border-neutral-400 text-neutral-800 text-xs font-bold transition-all flex items-center gap-1 shadow-sm active:translate-y-0.5">
+          <span id="sound-icon">🔊</span>
+          <span id="sound-label" class="hidden sm:inline">TON AN</span>
+        </button>
+
+        <button id="btn-feed-manual" class="px-3 py-1.5 rounded-lg bg-device-accent hover:bg-orange-600 text-white text-xs font-bold transition-all shadow-md active:translate-y-0.5 flex items-center gap-1">
+          <span>↓</span> FEED
+        </button>
+
+        <button id="btn-clear-roll" class="px-2.5 py-1.5 rounded-lg bg-neutral-300 hover:bg-neutral-400 text-neutral-700 text-xs font-bold transition-all border border-neutral-400" title="Neue Rolle einlegen / Rolle leeren">
+          <span>↺</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- MECHANISCHES BEDIENPANEL (Taktile Navigationstasten auf dem Gehäuse) -->
+    <div class="w-full max-w-4xl px-4 pb-2.5 pt-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 text-neutral-800">
+      <button id="btn-print-bio" class="px-2.5 py-2 rounded-lg bg-neutral-100 hover:bg-white active:bg-neutral-200 border-b-2 border-neutral-400 text-left transition-all active:translate-y-0.5 shadow-sm">
+        <div class="text-[9px] text-neutral-500 font-bold">01 // PROFIL</div>
+        <div class="text-xs font-bold text-neutral-900 truncate">ÜBER MICH</div>
+      </button>
+
+      <button id="btn-print-series" class="px-2.5 py-2 rounded-lg bg-neutral-100 hover:bg-white active:bg-neutral-200 border-b-2 border-neutral-400 text-left transition-all active:translate-y-0.5 shadow-sm">
+        <div class="text-[9px] text-neutral-500 font-bold">02 // KURATION</div>
+        <div class="text-xs font-bold text-neutral-900 truncate">12 SERIEN</div>
+      </button>
+
+      <button id="btn-print-artwork" class="px-2.5 py-2 rounded-lg bg-device-yellow/20 hover:bg-device-yellow/30 active:bg-device-yellow/40 border-b-2 border-amber-600 text-left transition-all active:translate-y-0.5 shadow-sm">
+        <div class="text-[9px] text-amber-800 font-bold">03 // 1-BIT ART</div>
+        <div class="text-xs font-bold text-amber-950 truncate">WERK DRUCKEN</div>
+      </button>
+
+      <button id="btn-print-drops" class="px-2.5 py-2 rounded-lg bg-neutral-100 hover:bg-white active:bg-neutral-200 border-b-2 border-neutral-400 text-left transition-all active:translate-y-0.5 shadow-sm">
+        <div class="text-[9px] text-neutral-500 font-bold">04 // DROPS</div>
+        <div class="text-xs font-bold text-neutral-900 truncate">A5/A6 PREISE</div>
+      </button>
+
+      <button id="btn-print-contact" class="col-span-2 sm:col-span-1 px-2.5 py-2 rounded-lg bg-neutral-100 hover:bg-white active:bg-neutral-200 border-b-2 border-neutral-400 text-left transition-all active:translate-y-0.5 shadow-sm">
+        <div class="text-[9px] text-neutral-500 font-bold">05 // ANFRAGE</div>
+        <div class="text-xs font-bold text-neutral-900 truncate">TWINT & KAUF</div>
+      </button>
+    </div>
+
+    <!-- DER ECHTE AUSGABESCHLITZ (SLOT AN DER UNTERSEITE DES GEHÄUSES) -->
+    <div class="w-full max-w-xl px-4 pt-1 pb-2">
+      <div class="w-full h-4 bg-device-bezel rounded-sm shadow-slot-inner border border-neutral-900 relative flex items-center justify-center overflow-hidden">
+        <!-- Gezackte Metall-Abreisskante -->
+        <div class="w-full h-1 bg-neutral-600 rounded-full opacity-40"></div>
+        <div class="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= UNTERER BEREICH: SCROLLBARER PAPIER-SCHACHT ================= -->
+  <!-- Hier hängt das endlose Papier heraus. Neue Drucke erscheinen OBEN direkt am Schlitz und schieben das alte Papier NACH UNTEN! -->
+  <main id="paper-viewport" class="flex-1 w-full overflow-y-auto px-4 py-4 flex flex-col items-center scroll-smooth">
+    
+    <!-- DIE ENDLOSE PAPIERROLLE -->
+    <!-- WICHTIG: Flex-col mit Anfügung OBEN (neustes Element schiebt alte nach unten) -->
+    <div id="continuous-tape" class="w-full max-w-md bg-thermal-paper text-thermal-ink shadow-paper-strip border-x border-thermal-paperEdge flex flex-col relative transition-all duration-75">
+      
+      <!-- Oberer Papiereinzug: Verschwindet direkt im Schlitz des Geräts -->
+      <div class="w-full h-3 bg-gradient-to-b from-black/40 via-black/10 to-transparent shrink-0"></div>
+
+      <!-- KONTINUIERLICHER PAPIERINHALT -->
+      <!-- Neue Abschnitte werden mit .prepend() ganz oben eingefügt und wachsen von 0px nach unten aus dem Schlitz! -->
+      <div id="tape-content-container" class="px-5 md:px-6 py-1 font-receipt tracking-wider flex flex-col text-xs leading-relaxed">
+        
+        <!-- INITIALES TICKET (Ganz am Anfang gedruckt) -->
+        <div class="tape-section text-center pb-2">
+          <div class="text-xl font-bold tracking-widest">*** ATELIER SIMON ***</div>
+          <div class="text-xs">WWW.SIMON.AMZEICHNEN.CH</div>
+          <div class="text-[10px] text-thermal-faded">WERKATLAS & ZEICHNUNGS-ARCHIV • 2026</div>
+
+          <div class="perforation-line my-2.5 opacity-50"></div>
+
+          <div class="text-left text-xs leading-relaxed space-y-1">
+            <div><b>THERMAL STATUS:</b> ENDLOSROLLE EINGEFÄDELT</div>
+            <div><b>TOTAL ARCHIV:</b> 652 KURIERTE UNIKATE</div>
+            <div><b>INTERAKTIV:</b> Klicke auf ein beliebiges gedrucktes Kunstwerk auf dem Beleg, um es hochauflösend in Vollbild (Farbe / 1-Bit Dither) zu betrachten.</div>
+          </div>
+
+          <div class="mt-3 pt-1.5 border-t border-dotted border-thermal-ink/40 flex justify-between text-[10px] text-thermal-faded">
+            <span>TERMINAL BEREIT:</span>
+            <span id="initial-timestamp">--:--</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Unterer abgerissener Abschluss der Papierrolle -->
+      <div class="w-full h-4 receipt-bottom-serrated mt-3 shrink-0"></div>
+    </div>
+
+  </main>
+
+  <!-- ================= VOLLBILD-LIGHTBOX / LEUCHTKASTEN MODAL ================= -->
+  <div id="artwork-lightbox" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 md:p-6 transition-all duration-300 opacity-0">
+    <div class="bg-neutral-900 border border-neutral-700/80 rounded-3xl max-w-4xl w-full max-h-[92vh] overflow-hidden shadow-2xl flex flex-col md:flex-row relative">
+      
+      <!-- Schliessen-Kreuz oben rechts -->
+      <button id="btn-close-lightbox" class="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-neutral-950/80 hover:bg-neutral-800 text-neutral-300 hover:text-white flex items-center justify-center border border-neutral-700 transition-colors" title="Schliessen (ESC)">
+        ✕
+      </button>
+
+      <!-- LINKER BEREICH: GROSSE BILD-BÜHNE MIT FARB- & DITHER-TOGGLE -->
+      <div class="w-full md:w-3/5 bg-neutral-950 p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-neutral-800 relative min-h-[300px] md:min-h-[460px]">
+        
+        <!-- Kunstwerk-Rahmen -->
+        <div id="lightbox-artwork-canvas-container" class="w-full max-w-[320px] aspect-[3/4] rounded-2xl shadow-2xl overflow-hidden border border-neutral-800 bg-neutral-900 flex items-center justify-center relative transition-transform duration-300">
+          <!-- Dynamisches SVG (Farbe oder 1-Bit) -->
+        </div>
+
+        <!-- Umschalter: Farbe vs. 1-Bit Dither -->
+        <div class="mt-4 flex items-center bg-neutral-900/90 p-1 rounded-full border border-neutral-700/80 shadow-lg text-[11px]">
+          <button id="btn-view-color" class="px-3.5 py-1 rounded-full font-bold transition-all bg-device-accent text-white shadow-sm flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-amber-300"></span> Original (Farbe)
+          </button>
+          <button id="btn-view-dither" class="px-3.5 py-1 rounded-full font-bold transition-all text-neutral-400 hover:text-neutral-200 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-neutral-600"></span> 1-Bit Dither Print
+          </button>
+        </div>
+
+        <!-- Echtheits-Badge unten links -->
+        <div class="absolute bottom-4 left-5 flex items-center gap-2 text-[10px] text-neutral-400">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>UNIKAT-ARCHIV • SIMON.AMZEICHNEN.CH</span>
+        </div>
+      </div>
+
+      <!-- RECHTER BEREICH: KURATION, DETAILS & KAUFANFRAGE -->
+      <div class="w-full md:w-2/5 p-6 flex flex-col justify-between space-y-4 bg-neutral-900/95 overflow-y-auto">
+        <div>
+          <div class="flex items-center justify-between">
+            <span id="lb-serie-badge" class="text-[10px] uppercase tracking-widest text-device-yellow font-bold">SERIE</span>
+            <span id="lb-artwork-id" class="text-xs font-mono px-2 py-0.5 rounded bg-neutral-800 text-neutral-300 border border-neutral-700 font-bold">K0000</span>
+          </div>
+
+          <h3 id="lb-artwork-title" class="text-xl md:text-2xl font-bold text-white mt-1.5 leading-snug tracking-tight">Titel des Kunstwerks</h3>
+          <p id="lb-artwork-technique" class="text-xs text-neutral-400 mt-1">Buntstift & Pigmente auf Feinpapier</p>
+
+          <div class="h-px bg-neutral-800 my-3.5"></div>
+
+          <!-- Kurzbeschreibung -->
+          <div class="text-xs text-neutral-300 leading-relaxed italic bg-black/30 p-3 rounded-xl border border-neutral-800/80" id="lb-artwork-description">
+            Beschreibung des Werks.
+          </div>
+
+          <!-- Kurations-Raster -->
+          <div class="grid grid-cols-2 gap-2 mt-4 text-[11px] bg-neutral-950/70 p-3 rounded-xl border border-neutral-800">
+            <div>
+              <span class="text-neutral-500 block text-[10px]">FORMAT</span>
+              <span id="lb-artwork-format" class="text-neutral-200 font-medium">A6 (10.5 × 14.8 cm)</span>
+            </div>
+            <div>
+              <span class="text-neutral-500 block text-[10px]">VERTRIEB</span>
+              <span id="lb-artwork-type" class="text-neutral-200 font-medium">Original-Drop</span>
+            </div>
+            <div class="col-span-2 pt-1 border-t border-neutral-800/60">
+              <span class="text-neutral-500 block text-[10px]">FARBWELT / STIMMUNG</span>
+              <span id="lb-artwork-mood" class="text-neutral-200 font-medium truncate block">Ultramarin & Gold</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preis & Kaufanfrage Button -->
+        <div class="pt-3 border-t border-neutral-800/80 space-y-2.5">
+          <div class="flex items-baseline justify-between">
+            <span class="text-xs text-neutral-400">RICHTPREIS (UNIKAT):</span>
+            <span id="lb-artwork-price" class="text-lg font-bold text-device-accent">135.– CHF</span>
+          </div>
+
+          <a id="lb-inquiry-mail-btn" href="#" class="w-full py-2.5 px-4 rounded-xl bg-device-accent hover:bg-orange-600 text-white font-bold text-xs tracking-wide transition-all shadow-lg flex items-center justify-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+            Werk unverbindlich anfragen (TWINT / Mail)
+          </a>
+
+          <div class="text-[10px] text-center text-neutral-500">
+            Versandfrei in der Schweiz • Handsigniertes Unikat mit Zertifikat
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= PROCEDURAL AUDIO ENGINE & CONTROLLER ================= -->
+  <script>
+    /* -------------------------------------------------------------
+       1. SYNTHETISIERTE WEB AUDIO ENGINE (Keine externen MP3s)
+    ------------------------------------------------------------- */
+    class ThermalAudioSynthesizer {
+      constructor() {
+        this.ctx = null;
+        this.soundEnabled = true;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioCtx();
+        }
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      // Taktiler Klick bei Tastendruck
+      playClick() {
+        if (!this.soundEnabled) return;
+        this.init();
+        
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.03);
+
+        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.03);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.035);
+      }
+
+      // Prozeduraler Schrittmotor-Schritt mit Thermokopf-Zischen
+      playStep(freq = 280) {
+        if (!this.soundEnabled) return;
+        this.init();
+
+        const now = this.ctx.currentTime;
+        const dur = 0.036;
+
+        // 1. Motor-Impuls (Sägezahn)
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, now);
+        osc.frequency.exponentialRampToValueAtTime(freq * 0.7, now + dur);
+
+        gain.gain.setValueAtTime(0.045, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        // 2. Thermisches Zischen
+        const bufSize = this.ctx.sampleRate * dur;
+        const noiseBuf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
+        const data = noiseBuf.getChannelData(0);
+        for (let i = 0; i < bufSize; i++) {
+          data[i] = (Math.random() * 2 - 1) * 0.35;
+        }
+
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = noiseBuf;
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(2800, now);
+        filter.Q.setValueAtTime(1.8, now);
+
+        const noiseGain = this.ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.03, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+        noise.connect(filter);
+        filter.connect(noiseGain);
+        noiseGain.connect(this.ctx.destination);
+
+        osc.start(now);
+        noise.start(now);
+        osc.stop(now + dur);
+        noise.stop(now + dur);
+      }
+
+      // Reset Sound
+      playResetSound() {
+        if (!this.soundEnabled) return;
+        this.init();
+
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(420, now);
+        osc.frequency.exponentialRampToValueAtTime(100, now + 0.2);
+
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.22);
+      }
+    }
+
+    const sound = new ThermalAudioSynthesizer();
+
+    /* -------------------------------------------------------------
+       2. REPRÄSENTATIVER KUNST-DATENSATZ (AUS DEINEM EXCEL)
+    ------------------------------------------------------------- */
+    const SERIES_LIST = [
+      { name: "Organische Formstudien", count: 200, price: "90 – 160 CHF", role: "Drop-Paket & Unikate" },
+      { name: "Resonanzen & Schwingungen", count: 100, price: "110 – 195 CHF", role: "Fine-Art-Prints & Originale" },
+      { name: "Farbstudien & Lichträume", count: 82, price: "95 – 180 CHF", role: "Editionen & Original-Drops" },
+      { name: "Biomorphe Welten", count: 75, price: "100 – 185 CHF", role: "Sammler-Drops" },
+      { name: "Organische Farbwelten", count: 66, price: "85 – 150 CHF", role: "Themen-Sets" },
+      { name: "Geometrie & Mikrokosmen", count: 37, price: "90 – 160 CHF", role: "Architektur-Prints" },
+      { name: "Kosmische Sphären & Nocturnes", count: 28, price: "120 – 195 CHF", role: "Fine-Art-Prints" },
+      { name: "Horizonte & Landschaften", count: 21, price: "85 – 140 CHF", role: "Original-Drops" },
+      { name: "Gesten & Figürliche Skizzen", count: 20, price: "140 – 210 CHF", role: "Nur Original (Unikate)" },
+      { name: "Monochrom & Collagen-Fragmente", count: 14, price: "130 – 190 CHF", role: "Nur Original (Unikate)" },
+      { name: "3D-Serie & Relief-Objekte", count: 6, price: "380 – 620 CHF", role: "Skulptur & Gold-Relief" },
+      { name: "Cyanotypie & Experimentell", count: 3, price: "290 – 350 CHF", role: "Sonnendrucke & Kintsugi" }
+    ];
+
+    const ARTWORKS = [
+      {
+        id: "K0003",
+        title: "Pulsierender Lichtkern",
+        serie: "Resonanzen & Schwingungen",
+        technique: "Buntstift & Pigmente auf Feinpapier",
+        format: "A6 (10.5 × 14.8 cm)",
+        mood: "Ultramarin, Zinkgelb & Graphit",
+        price: 135,
+        type: "Fine-Art-Print Edition",
+        seed: 41
+      },
+      {
+        id: "K0018",
+        title: "Schleife der Wandlung",
+        serie: "3D-Serie & Relief-Objekte",
+        technique: "Geformtes Papier mit Blattgold-Auflage",
+        format: "A5 (14.8 × 21 cm)",
+        mood: "Goldblatt & Tiefschwarz",
+        price: 420,
+        type: "Nur Original (Unikat)",
+        seed: 83
+      },
+      {
+        id: "K0042",
+        title: "Erdton-Schichtung No. 12",
+        serie: "Organische Farbwelten",
+        technique: "Polychromos Schichttechnik",
+        format: "A6 (10.5 × 14.8 cm)",
+        mood: "Sienna gebrannt, Ocker, Umbra",
+        price: 95,
+        type: "Drop-Paket",
+        seed: 29
+      },
+      {
+        id: "K0064",
+        title: "Goldader im Preussischblau",
+        serie: "Cyanotypie & Experimentell",
+        technique: "Cyanotypie-Sonnendruck mit Kintsugi-Gold",
+        format: "A5 (14.8 × 21 cm)",
+        mood: "Preussischblau & Feingold",
+        price: 290,
+        type: "Nur Original (Unikat)",
+        seed: 94
+      },
+      {
+        id: "K0107",
+        title: "Zellverflechtung IV",
+        serie: "Organische Formstudien",
+        technique: "Buntstift auf 250g/m² Feinpapier",
+        format: "A5 (14.8 × 21 cm)",
+        mood: "Moosgrün, Lindgrün & Umbra",
+        price: 160,
+        type: "Drop-Paket",
+        seed: 67
+      },
+      {
+        id: "K0219",
+        title: "Spektraler Morgen",
+        serie: "Farbstudien & Lichträume",
+        technique: "Chromatisches Spektrum auf Bütten",
+        format: "A6 (10.5 × 14.8 cm)",
+        mood: "Zitron, Kadmiumrot & Cyan",
+        price: 110,
+        type: "Fine-Art-Print",
+        seed: 52
+      }
+    ];
+
+    /* -------------------------------------------------------------
+       3. 1-BIT BAYER MATRIX DITHERING GENERATOR
+    ------------------------------------------------------------- */
+    function generateDitherImage(seed) {
+      const w = 180;
+      const h = 95;
+      const c = document.createElement('canvas');
+      c.width = w;
+      c.height = h;
+      const cctx = c.getContext('2d');
+
+      // Weißer Hintergrund
+      cctx.fillStyle = '#ffffff';
+      cctx.fillRect(0, 0, w, h);
+
+      // Abstrakte Wellenlinien zeichnen
+      for (let i = 0; i < 7; i++) {
+        const offset = (seed * (i + 1) * 31) % 45;
+        cctx.beginPath();
+        cctx.moveTo(0, 15 + i * 11);
+        cctx.bezierCurveTo(w * 0.35, 10 + i * 12 + offset, w * 0.65, 80 - i * 6, w, 25 + i * 9);
+        cctx.strokeStyle = `rgba(0, 0, 0, ${0.3 + (i % 3) * 0.25})`;
+        cctx.lineWidth = 1.6 + (i % 3);
+        cctx.stroke();
+      }
+
+      // Organischer Kern
+      cctx.beginPath();
+      cctx.arc(w / 2 + ((seed * 7) % 24 - 12), h / 2, 24, 0, Math.PI * 2);
+      cctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+      cctx.fill();
+
+      // 4x4 Bayer Matrix
+      const imgData = cctx.getImageData(0, 0, w, h);
+      const d = imgData.data;
+      const bayer = [
+        [ 0,  8,  2, 10],
+        [12,  4, 14,  6],
+        [ 3, 11,  1,  9],
+        [15,  7, 13,  5]
+      ];
+
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const idx = (y * w + x) * 4;
+          const gray = 0.299 * d[idx] + 0.587 * d[idx + 1] + 0.114 * d[idx + 2];
+          const threshold = (bayer[y % 4][x % 4] / 16) * 255;
+          const val = gray < threshold ? 20 : 250;
+          d[idx] = val;
+          d[idx + 1] = val;
+          d[idx + 2] = val;
+        }
+      }
+
+      cctx.putImageData(imgData, 0, 0);
+      return c.toDataURL();
+    }
+
+    /* -------------------------------------------------------------
+       4. ECHTE PHYSIKALISCHE LAUFRICHTUNG: DER CONTROLLER
+    ------------------------------------------------------------- */
+    const tapeContainer = document.getElementById('tape-content-container');
+    const continuousTape = document.getElementById('continuous-tape');
+    const paperViewport = document.getElementById('paper-viewport');
+    const printerDevice = document.getElementById('printer-device');
+    const lcdStatusText = document.getElementById('lcd-status-text');
+    const lcdStatusDot = document.getElementById('lcd-status-dot');
+    const tapeMeter = document.getElementById('tape-meter');
+
+    let isPrinting = false;
+    let totalLengthCm = 36; // Start-Länge in Zentimetern
+
+    /**
+     * DRUCKT EINEN ABSCHNITT AUS DEM SCHLITZ HERAUS NACH UNTEN:
+     * Der neue Abschnitt wird GANZ OBEN (prepend) eingefügt. 
+     * Jede Zeile wächst direkt unter dem Schlitz hervor und 
+     * schiebt das alte Papier physikalisch nach unten!
+     */
+    async function printSectionOutAtTop(htmlLines, label, stepMs = 45) {
+      if (isPrinting) return;
+      isPrinting = true;
+
+      // Statusanzeigen auf PRINTING schalten
+      lcdStatusText.textContent = `PRINT: ${label.substring(0, 14)}`;
+      lcdStatusDot.className = "w-2 h-2 rounded-full bg-device-yellow shadow-[0_0_8px_#f59e0b] animate-pulse";
+      printerDevice.classList.add('head-vibrating');
+
+      // 1. Neuer Abschnitts-Container erstellen
+      const newSection = document.createElement('div');
+      newSection.className = "new-receipt-section flex flex-col pt-1 pb-3 relative";
+
+      // 2. Perforationslinie & Zeitstempel ganz oben (wo der Druck beginnt)
+      const headerLine = document.createElement('div');
+      headerLine.className = "pb-2 mb-1";
+      headerLine.innerHTML = `
+        <div class="flex items-center justify-between text-[10px] text-thermal-faded">
+          <span>>>> THERMAL FEED: ${label.toUpperCase()}</span>
+          <span>${new Date().toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+        </div>
+        <div class="perforation-line my-1.5 opacity-60"></div>
+      `;
+      newSection.appendChild(headerLine);
+
+      // WICHTIG: Den neuen Block GANZ OBEN in den Tape-Container einhängen (prepend)
+      tapeContainer.prepend(newSection);
+
+      // Viewport oben fixiert halten, damit man den Druckkopf genau beobachten kann
+      paperViewport.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // 3. Jede Zeile einzeln oben herausschieben lassen
+      for (let i = 0; i < htmlLines.length; i++) {
+        const lineElem = document.createElement('div');
+        lineElem.innerHTML = htmlLines[i];
+        
+        // Anfangs eingezogen (im Schlitz verborgen)
+        lineElem.style.maxHeight = '0px';
+        lineElem.style.opacity = '0';
+        lineElem.style.overflow = 'hidden';
+        lineElem.style.transform = 'translateY(-6px)';
+        lineElem.style.transition = 'max-height 0.12s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.08s ease, transform 0.08s ease';
+
+        newSection.appendChild(lineElem);
+
+        // Frame abwarten & Zeile nach unten herausgleiten lassen
+        await new Promise(r => setTimeout(r, 10));
+        lineElem.style.maxHeight = '320px';
+        lineElem.style.opacity = '1';
+        lineElem.style.transform = 'translateY(0)';
+
+        // Taktiler Schrittmotor-Ton
+        sound.playStep(270 + (i % 5) * 18);
+
+        // Zähler erhöhen
+        totalLengthCm += 1.6;
+        tapeMeter.textContent = (totalLengthCm / 100).toFixed(2) + "m";
+
+        await new Promise(r => setTimeout(r, stepMs));
+      }
+
+      // Abschluss-Abschneider-Perforation unter dem neuen Block
+      const footerLine = document.createElement('div');
+      footerLine.className = "perforation-line mt-3 mb-1 opacity-60";
+      newSection.appendChild(footerLine);
+
+      // Nachlauf
+      sound.playStep(190);
+      await new Promise(r => setTimeout(r, 90));
+
+      // Zurück in Standby
+      printerDevice.classList.remove('head-vibrating');
+      lcdStatusText.textContent = "IDLE / READY";
+      lcdStatusDot.className = "w-2 h-2 rounded-full bg-device-lcdText shadow-[0_0_8px_#62d681]";
+      isPrinting = false;
+    }
+
+    /* -------------------------------------------------------------
+       5. CONTENT-GENERATOREN FÜR DIE BEDIENFELDER (01 - 05)
+    ------------------------------------------------------------- */
+    // 01: Profil / Über mich
+    function getBioContent() {
+      return [
+        `<div class="text-center pb-1">
+          <div class="text-base font-bold tracking-wider">KÜNSTLERPROFIL // SIMON</div>
+          <div class="text-[10px] text-thermal-faded">WERKSTATT & ATELIER • LUZERN / SCHWEIZ</div>
+        </div>`,
+        `<div class="perforation-line my-1.5 opacity-40"></div>`,
+        `<div class="text-xs space-y-1.5 pt-0.5">
+          <div><b>FOKUS:</b> Zeichnung, Farbe & organische Formstudien auf Papier.</div>
+          <div><b>MEDIEN:</b> Buntstifte (Polychromos/Luminance), Pigmente, Tusche, Blattgold & Cyanotypie.</div>
+          <div><b>PHILOSOPHIE:</b> Rhythmus, Schichtung und Mikrostrukturen. Jede Arbeit ist ein eigenständiges Unikat im Kleinformat (A5 / A6) oder plastisches Reliefobjekt.</div>
+          <div class="pt-1 text-[11px] text-neutral-700 italic">» Zeichnen als fortlaufende Meditation und rhythmisches Kartografieren von Resonanzräumen. «</div>
+        </div>`,
+        `<div class="mt-2 pt-1 border-t border-dotted border-thermal-ink/30 flex justify-between text-[10px] text-thermal-faded">
+          <span>PORTFOLIO-STAND:</span>
+          <span>652 KURIERTE UNIKATE</span>
+        </div>`
+      ];
+    }
+
+    // 02: Die 12 konsolidierten Serien im Überblick
+    function getSeriesContent() {
+      const lines = [
+        `<div class="text-center pb-1">
+          <div class="text-base font-bold tracking-wider">12 KONSOLIDIERTE SERIEN</div>
+          <div class="text-[10px] text-thermal-faded">KURATION & BESTANDVERZEICHNIS</div>
+        </div>`,
+        `<div class="perforation-line my-1.5 opacity-40"></div>`,
+        `<div class="text-xs space-y-1 pt-0.5">`
+      ];
+
+      SERIES_LIST.forEach((s, idx) => {
+        const nr = String(idx + 1).padStart(2, '0');
+        lines.push(`
+          <div class="flex items-baseline justify-between border-b border-dotted border-thermal-ink/20 py-0.5">
+            <span class="font-bold text-[11px] truncate pr-2">${nr}. ${s.name.toUpperCase()}</span>
+            <span class="font-mono text-[10px] shrink-0 font-bold">${s.count} W.</span>
+          </div>
+          <div class="flex items-center justify-between text-[9px] text-thermal-faded pb-1">
+            <span>${s.role}</span>
+            <span>${s.price}</span>
+          </div>
+        `);
+      });
+
+      lines.push(`</div>`);
+      lines.push(`
+        <div class="mt-2 pt-1 border-t border-dotted border-thermal-ink/30 text-[10px] text-center text-thermal-faded">
+          Alle 12 Serien sind über die Bedientaste [03 // WERK DRUCKEN] als 1-Bit Dither-Drucke abrufbar.
+        </div>
+      `);
+
+      return lines;
+    }
+
+    // Generiert die farbige Original-Darstellung als Vektor-Kunstwerk (Buntstift/Lasuren/Gold)
+    function generateColorArtworkSVG(art) {
+      const seed = art.seed || 42;
+      const is3D = art.serie.includes("3D");
+      const isCyan = art.serie.includes("Cyanotypie");
+      const isMono = art.serie.includes("Monochrom");
+
+      let bg = isCyan ? "#031730" : (isMono ? "#18181b" : "#0f172a");
+      let strokeA = isCyan ? "#38bdf8" : (is3D ? "#d4af37" : "#f43f5e");
+      let strokeB = isCyan ? "#d4af37" : (is3D ? "#f8fafc" : "#38bdf8");
+      let strokeC = isCyan ? "#7dd3fc" : (is3D ? "#fbbf24" : "#f59e0b");
+
+      let lines = '';
+      for (let i = 0; i < 14; i++) {
+        const offset = (seed * (i + 1) * 23) % 70;
+        const y1 = 20 + i * 16 + (offset % 12);
+        const y2 = 240 - i * 14 + (offset % 15);
+        const col = (i % 3 === 0) ? strokeA : ((i % 3 === 1) ? strokeB : strokeC);
+        lines += `
+          <path d="M 20,${y1} Q ${70 + offset},${y2 - 30} 140,${y1 + 15} T 280,${y2}"
+                fill="none"
+                stroke="${col}"
+                stroke-width="${1.8 + (i % 3) * 0.8}"
+                opacity="${0.65 + (i % 4) * 0.08}"
+                stroke-linecap="round"/>
+        `;
+      }
+
+      let highlights = '';
+      if (is3D) {
+        highlights = `
+          <!-- 3D Faltung & Blattgold Relief -->
+          <polygon points="70,50 230,80 200,280 40,210" fill="none" stroke="#d4af37" stroke-width="3" filter="drop-shadow(0 0 10px rgba(212,175,55,0.7))"/>
+          <line x1="70" y1="50" x2="200" y2="280" stroke="#fef08a" stroke-width="2" stroke-dasharray="4,4"/>
+          <circle cx="135" cy="165" r="14" fill="#fbbf24" filter="drop-shadow(0 0 14px rgba(251,191,36,0.9))"/>
+        `;
+      } else if (isCyan) {
+        highlights = `
+          <!-- Kintsugi Goldader -->
+          <path d="M 50,40 Q 150,220 250,80" fill="none" stroke="#fbbf24" stroke-width="4.5" filter="drop-shadow(0 0 12px rgba(251,191,36,0.95))"/>
+          <circle cx="150" cy="140" r="48" fill="none" stroke="#38bdf8" stroke-width="1.5" opacity="0.5"/>
+        `;
+      }
+
+      return `
+        <svg viewBox="0 0 300 360" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+          <rect width="300" height="360" fill="${bg}"/>
+          <!-- Subtiler Zeichenpapier-Schleier -->
+          <circle cx="150" cy="180" r="130" fill="none" stroke="${strokeB}" stroke-width="0.75" opacity="0.18" stroke-dasharray="3,6"/>
+          ${lines}
+          ${highlights}
+        </svg>
+      `;
+    }
+
+    // 03: Echtheitszertifikat mit 1-Bit Dither Art & Klick-Vorschau
+    function getArtworkContent(art) {
+      const ditherUrl = generateDitherImage(art.seed);
+      return [
+        `<div class="text-center pb-1">
+          <div class="text-base font-bold">WERK-ZERTIFIKAT #${art.id}</div>
+          <div class="text-[10px] text-thermal-faded">ORIGINALZEICHNUNG / EDITION</div>
+        </div>`,
+        `<div class="text-xs space-y-1 pt-1 border-t border-dotted border-thermal-ink/30">
+          <div class="text-sm font-bold">${art.title.toUpperCase()}</div>
+          <div><b>SERIE:</b> ${art.serie}</div>
+          <div><b>TECHNIK:</b> ${art.technique}</div>
+          <div><b>FORMAT:</b> ${art.format}</div>
+          <div><b>FARBWELT:</b> ${art.mood}</div>
+          <div><b>VERTRIEB:</b> ${art.type}</div>
+          <div class="text-sm font-bold pt-1 text-neutral-900">PREIS: ${art.price}.– CHF</div>
+        </div>`,
+        `<!-- Interaktiver Klickbereich für Lightbox -->
+        <div class="dither-thumb-wrapper my-2 p-1.5 border border-thermal-ink/40 rounded bg-white/60 text-center relative group" 
+             data-artwork-id="${art.id}"
+             title="Klicken für hochauflösendes Vollbild (Farbe & 1-Bit)">
+          <div class="flex items-center justify-between text-[9px] text-thermal-faded mb-1 px-1">
+            <span>1-BIT THERMAL DITHER SCAN:</span>
+            <span class="font-bold underline text-neutral-900 group-hover:text-amber-800">🔍 VOLLBILD</span>
+          </div>
+          <img src="${ditherUrl}" class="mx-auto border border-thermal-ink/20 pixelated shadow-sm" alt="${art.title}">
+          <div class="text-[9px] text-neutral-700 mt-1 font-bold">» Antippen für Farboriginal & Details «</div>
+        </div>`,
+        `<div class="pt-1 flex items-center justify-between text-[10px] border-t border-dotted border-thermal-ink/30">
+          <div>
+            <b>ATELIER SIMON</b><br>
+            ORIGINALWERK
+          </div>
+          <div class="w-10 h-10 border-2 border-thermal-ink rounded-full flex items-center justify-center font-bold text-[8px] rotate-6">
+            SWISS<br>MADE
+          </div>
+        </div>`,
+        `<div class="text-center text-[8px] font-mono pt-1 text-thermal-faded tracking-widest">
+          ||||| ||| ||||||| |||| |||||||| |||||
+        </div>`
+      ];
+    }
+
+    // 04: A5/A6 Drops & Preise
+    function getDropsContent() {
+      return [
+        `<div class="text-center pb-1">
+          <div class="text-base font-bold">DROPS & SAMMLER-EDITIONEN</div>
+          <div class="text-[10px] text-thermal-faded">PREISE & BÜNDELUNG</div>
+        </div>`,
+        `<div class="text-xs space-y-2 pt-1 border-t border-dotted border-thermal-ink/30">
+          <div class="p-2 border border-thermal-ink/30 rounded bg-black/5">
+            <b>1. A5 / A6 ORIGINAL-DROPS</b><br>
+            <span class="text-[11px]">80.– bis 190.– CHF • Monats-Drops à 20–30 Unikate. Ideal als Einzelakzent oder 3er-Triptychon.</span>
+          </div>
+
+          <div class="p-2 border border-thermal-ink/30 rounded bg-black/5">
+            <b>2. LIMITIERTE FINE-ART-PRINTS</b><br>
+            <span class="text-[11px]">90.– bis 160.– CHF • Streng nummerierte 25er/50er Auflagen auf 300g Baumwollpapier.</span>
+          </div>
+
+          <div class="p-2 border border-thermal-ink/30 rounded bg-black/5">
+            <b>3. 3D-RELIEFS & UNIKATE</b><br>
+            <span class="text-[11px]">380.– bis 620.– CHF • Gefaltete Papierskulpturen mit Blattgold & Miniatur-Objekten.</span>
+          </div>
+        </div>`,
+        `<div class="pt-1.5 text-center text-xs border-t border-dotted border-thermal-ink/30">
+          <b>SAMMLER-VORTEIL:</b><br>
+          3er-Set nach freier Wahl mit 15% Rabatt.
+        </div>`
+      ];
+    }
+
+    // 05: Kontakt & TWINT
+    function getContactContent() {
+      return [
+        `<div class="text-center pb-1">
+          <div class="text-base font-bold">KAUFANFRAGE & DIREKTKONTAKT</div>
+          <div class="text-[10px] text-thermal-faded">ATELIER SIMON • SCHWEIZ</div>
+        </div>`,
+        `<div class="text-xs space-y-1.5 pt-1 border-t border-dotted border-thermal-ink/30">
+          <div><b>E-MAIL:</b> simon@amzeichnen.ch</div>
+          <div><b>ZAHLUNG:</b> TWINT, Banküberweisung, Bar bei Abholung</div>
+          <div><b>VERSAND:</b> Sicher verpackt & versichert via Post</div>
+        </div>`,
+        `<div class="p-2 my-1 border border-dashed border-thermal-ink/40 rounded text-center text-xs">
+          <b>SCHNELLE ANFRAGE:</b><br>
+          Nenne die Werknummer (z. B. K0003) für eine unverbindliche Reservierung und den TWINT-Link.
+        </div>`,
+        `<div class="pt-1 text-center">
+          <a href="mailto:simon@amzeichnen.ch?subject=Kaufanfrage%20Atelier%20Simon" class="inline-block px-4 py-1.5 bg-neutral-900 text-white rounded text-xs font-bold hover:bg-neutral-800 transition-colors">
+            E-MAIL SENDEN ✉️
+          </a>
+        </div>`
+      ];
+    }
+
+    /* -------------------------------------------------------------
+       6. TASTEN-BELEGUNG & MANUELLE STEUERUNG
+    ------------------------------------------------------------- */
+    
+    // 01 // Profil
+    document.getElementById('btn-print-bio').addEventListener('click', () => {
+      sound.playClick();
+      printSectionOutAtTop(getBioContent(), "ÜBER MICH");
+    });
+
+    // 02 // 12 Serien
+    document.getElementById('btn-print-series').addEventListener('click', () => {
+      sound.playClick();
+      printSectionOutAtTop(getSeriesContent(), "12 SERIEN", 30);
+    });
+
+    // 03 // Zufälliges Werk drucken
+    document.getElementById('btn-print-artwork').addEventListener('click', () => {
+      sound.playClick();
+      const randomArt = ARTWORKS[Math.floor(Math.random() * ARTWORKS.length)];
+      printSectionOutAtTop(getArtworkContent(randomArt), randomArt.title, 35);
+    });
+
+    // 04 // Drops & Preise
+    document.getElementById('btn-print-drops').addEventListener('click', () => {
+      sound.playClick();
+      printSectionOutAtTop(getDropsContent(), "DROPS & PREISE");
+    });
+
+    // 05 // Kontakt
+    document.getElementById('btn-print-contact').addEventListener('click', () => {
+      sound.playClick();
+      printSectionOutAtTop(getContactContent(), "KONTAKT");
+    });
+
+    // Neue Rolle einlegen / Beleg zurücksetzen
+    document.getElementById('btn-clear-roll').addEventListener('click', () => {
+      if (isPrinting) return;
+      sound.playResetSound();
+
+      tapeContainer.innerHTML = `
+        <div class="tape-section text-center pb-2">
+          <div class="text-xl font-bold tracking-widest">*** ATELIER SIMON ***</div>
+          <div class="text-xs">WWW.SIMON.AMZEICHNEN.CH</div>
+          <div class="text-[10px] text-thermal-faded">WERKATLAS & ZEICHNUNGS-ARCHIV • 2026</div>
+
+          <div class="perforation-line my-2.5 opacity-50"></div>
+
+          <div class="text-left text-xs leading-relaxed space-y-1">
+            <div><b>THERMAL STATUS:</b> ENDLOSROLLE EINGEFÄDELT</div>
+            <div><b>TOTAL ARCHIV:</b> 652 KURIERTE UNIKATE</div>
+            <div><b>INTERAKTIV:</b> Klicke auf ein beliebiges gedrucktes Kunstwerk auf dem Beleg, um es hochauflösend in Vollbild (Farbe / 1-Bit Dither) zu betrachten.</div>
+          </div>
+
+          <div class="mt-3 pt-1.5 border-t border-dotted border-thermal-ink/40 flex justify-between text-[10px] text-thermal-faded">
+            <span>TERMINAL BEREIT:</span>
+            <span id="initial-timestamp">${new Date().toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+        </div>
+      `;
+
+      totalLengthCm = 36;
+      tapeMeter.textContent = "0.36m";
+      lcdStatusText.textContent = "RESET / READY";
+      paperViewport.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // Manueller Papiervorschub (FEED-Button)
+    document.getElementById('btn-feed-manual').addEventListener('click', () => {
+      if (isPrinting) return;
+      sound.playClick();
+      sound.playStep(220);
+
+      // Leeren Papiervorschub oben einschieben
+      const blankFeed = document.createElement('div');
+      blankFeed.className = "h-8 border-b border-dotted border-thermal-ink/15 shrink-0";
+      tapeContainer.prepend(blankFeed);
+
+      totalLengthCm += 3;
+      tapeMeter.textContent = (totalLengthCm / 100).toFixed(2) + "m";
+      paperViewport.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    /* -------------------------------------------------------------
+       6. VOLLBILD-LIGHTBOX / MODAL CONTROLLER
+    ------------------------------------------------------------- */
+    const lightboxModal = document.getElementById('artwork-lightbox');
+    const btnCloseLightbox = document.getElementById('btn-close-lightbox');
+    const btnViewColor = document.getElementById('btn-view-color');
+    const btnViewDither = document.getElementById('btn-view-dither');
+    const lbContainer = document.getElementById('lightbox-artwork-canvas-container');
+
+    let currentActiveArtwork = null;
+    let currentLightboxMode = 'color'; // 'color' oder 'dither'
+
+    function openLightboxForArtwork(art) {
+      currentActiveArtwork = art;
+      currentLightboxMode = 'color';
+
+      // Metadaten befüllen
+      document.getElementById('lb-serie-badge').textContent = `SERIE: ${art.serie}`;
+      document.getElementById('lb-artwork-id').textContent = art.id;
+      document.getElementById('lb-artwork-title').textContent = art.title;
+      document.getElementById('lb-artwork-technique').textContent = art.technique;
+      document.getElementById('lb-artwork-format').textContent = art.format;
+      document.getElementById('lb-artwork-type').textContent = art.type;
+      document.getElementById('lb-artwork-mood').textContent = art.mood;
+      document.getElementById('lb-artwork-price').textContent = `${art.price}.– CHF`;
+      document.getElementById('lb-artwork-description').textContent = 
+        `Originalarbeit aus dem Atelier Simon. Gekennzeichnet durch organische Schichtungen, rhythmische Linienbündel und plastische Farbverdichtung. Auf feinem Zeichenpapier vollendet.`;
+
+      // Vorformuliertes Mailto für Kaufanfrage / TWINT
+      const subject = encodeURIComponent(`Kaufanfrage: ${art.title} (#${art.id})`);
+      const body = encodeURIComponent(
+        `Guten Tag Simon,\n\nIch interessiere mich für das Werk aus deinem Atelier:\n\nTitel: ${art.title} (ID: ${art.id})\nSerie: ${art.serie}\nFormat: ${art.format}\nRichtpreis: ${art.price} CHF\n\nBitte teile mir mit, ob das Werk verfügbar ist und sende mir gerne den TWINT-Link bzw. die Angaben zur Abholung / zum versicherten Postversand.\n\nFreundliche Grüsse,`
+      );
+      document.getElementById('lb-inquiry-mail-btn').href = `mailto:simon@amzeichnen.ch?subject=${subject}&body=${body}`;
+
+      // Bildansicht aktualisieren
+      updateLightboxArtworkDisplay();
+
+      // Modal öffnen mit weicher Einblendung
+      lightboxModal.classList.remove('hidden');
+      setTimeout(() => {
+        lightboxModal.classList.remove('opacity-0');
+      }, 10);
+
+      sound.playClick();
+    }
+
+    function closeLightbox() {
+      lightboxModal.classList.add('opacity-0');
+      setTimeout(() => {
+        lightboxModal.classList.add('hidden');
+      }, 250);
+      sound.playClick();
+    }
+
+    function updateLightboxArtworkDisplay() {
+      if (!currentActiveArtwork) return;
+
+      if (currentLightboxMode === 'color') {
+        lbContainer.innerHTML = generateColorArtworkSVG(currentActiveArtwork);
+        btnViewColor.className = "px-3.5 py-1 rounded-full font-bold transition-all bg-device-accent text-white shadow-sm flex items-center gap-1.5";
+        btnViewDither.className = "px-3.5 py-1 rounded-full font-bold transition-all text-neutral-400 hover:text-neutral-200 flex items-center gap-1.5";
+      } else {
+        const ditherSrc = generateDitherImage(currentActiveArtwork.seed);
+        lbContainer.innerHTML = `
+          <div class="w-full h-full p-6 bg-thermal-paper flex flex-col items-center justify-center border-4 border-dashed border-neutral-900/40">
+            <img src="${ditherSrc}" class="w-full h-auto pixelated border border-black/40 shadow-md" alt="1-Bit Scan">
+            <span class="text-[10px] font-mono text-neutral-800 mt-2 font-bold tracking-widest">1-BIT POS THERMAL PROOF</span>
+          </div>
+        `;
+        btnViewDither.className = "px-3.5 py-1 rounded-full font-bold transition-all bg-device-accent text-white shadow-sm flex items-center gap-1.5";
+        btnViewColor.className = "px-3.5 py-1 rounded-full font-bold transition-all text-neutral-400 hover:text-neutral-200 flex items-center gap-1.5";
+      }
+    }
+
+    // Toggle-Buttons (Farbe / 1-Bit)
+    btnViewColor.addEventListener('click', () => {
+      currentLightboxMode = 'color';
+      sound.playClick();
+      updateLightboxArtworkDisplay();
+    });
+
+    btnViewDither.addEventListener('click', () => {
+      currentLightboxMode = 'dither';
+      sound.playClick();
+      updateLightboxArtworkDisplay();
+    });
+
+    // Schliessen per Button
+    btnCloseLightbox.addEventListener('click', closeLightbox);
+
+    // Schliessen per Klick außerhalb der Box
+    lightboxModal.addEventListener('click', (e) => {
+      if (e.target === lightboxModal) {
+        closeLightbox();
+      }
+    });
+
+    // Schliessen per ESC-Taste
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !lightboxModal.classList.contains('hidden')) {
+        closeLightbox();
+      }
+    });
+
+    // Delegiertes Klick-Event für alle gedruckten Kunstwerke auf dem Endlospapier
+    tapeContainer.addEventListener('click', (e) => {
+      const thumbWrapper = e.target.closest('.dither-thumb-wrapper');
+      if (thumbWrapper) {
+        const artId = thumbWrapper.getAttribute('data-artwork-id');
+        const art = ARTWORKS.find(a => a.id === artId);
+        if (art) {
+          openLightboxForArtwork(art);
+        }
+      }
+    });
+
+    // Audio Mute Umschaltung
+    const btnToggleSound = document.getElementById('btn-toggle-sound');
+    const soundIcon = document.getElementById('sound-icon');
+    const soundLabel = document.getElementById('sound-label');
+
+    btnToggleSound.addEventListener('click', () => {
+      sound.soundEnabled = !sound.soundEnabled;
+      if (sound.soundEnabled) {
+        soundIcon.textContent = "🔊";
+        soundLabel.textContent = "TON AN";
+        sound.playClick();
+      } else {
+        soundIcon.textContent = "🔇";
+        soundLabel.textContent = "STUMM";
+      }
+    });
+
+    // Initialisierung beim Laden
+    window.addEventListener('load', () => {
+      document.getElementById('initial-timestamp').textContent = new Date().toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
+    });
+
+    // Audio-Context beim ersten Nutzerklick entsperren
+    window.addEventListener('click', () => {
+      sound.init();
+    }, { once: true });
+  </script>
+</body>
+</html>
