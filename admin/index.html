@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>amZeichnen.ch — Admin Terminal Redirect</title>
+  <script>
+    // Bewahrt OAuth-Parameter (?code=... oder #access_token=...) von Supabase Google Login
+    // und öffnet direkt das /admin Cockpit auf der Hauptseite.
+    try {
+      sessionStorage.setItem('amz_open_admin', '1');
+    } catch (e) {}
+    const search = window.location.search || '?admin=1';
+    const hash = window.location.hash || '#admin';
+    window.location.replace('../' + search + hash);
+  </script>
+</head>
+<body style="background:#0d0f12; color:#f4f4f0; font-family:monospace; padding:2rem;">
+  Lade Atelier-Admin-Cockpit... <a href="../?admin=1#admin" style="color:#ff5c35;">Hier klicken, falls keine automatische Weiterleitung erfolgt.</a>
+</body>
+</html>
