@@ -1,0 +1,143 @@
+name: Daily Git Backup to Supabase Storage
+
+on:
+  schedule:
+    # Täglich um 03:00 Uhr Schweizer Zeit (MEZ / UTC+1 = 02:00 UTC)
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      note:
+        description: 'Optionale Notiz für dieses manuelle Backup'
+        required: false
+        default: 'Manuelles Backup via GitHub Actions'
+
+permissions:
+  contents: read
+
+jobs:
+  backup-git-to-supabase:
+    name: Create Git Bundle & Upload to Supabase Storage
+    runs-on: ubuntu-latest
+
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://ewnwdmhyiwununfwukko.supabase.co' }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      BUCKET_NAME: 'git-backups'
+
+    steps:
+      - name: Checkout Complete Git Repository (All Branches & History)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch All Remote Branches and Tags
+        run: |
+          git fetch --all --tags --prune
+          for branch in $(git branch -r | grep -v '\->' | sed 's/origin\///'); do
+            git branch --track "$branch" "origin/$branch" 2>/dev/null || true
+          done
+          git branch -a
+
+      - name: Validate Supabase Credentials
+        run: |
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::Das GitHub Secret SUPABASE_SERVICE_ROLE_KEY fehlt! Bitte in GitHub unter Settings -> Secrets and variables -> Actions -> New repository secret anlegen."
+            exit 1
+          fi
+
+      - name: Create Verified Git Bundle & Source Tarball
+        id: archive
+        run: |
+          DATE_STAMP=$(TZ="Europe/Zurich" date +"%Y-%m-%d")
+          TIMESTAMP=$(TZ="Europe/Zurich" date +"%Y-%m-%dT%H:%M:%S%z")
+          COMMIT_SHA=$(git rev-parse --short HEAD)
+
+          mkdir -p /tmp/git-backup
+
+          BUNDLE_FILE="endless-git-${DATE_STAMP}.bundle"
+          TAR_FILE="endless-source-${DATE_STAMP}.tar.gz"
+          MANIFEST_FILE="backup-manifest.json"
+
+          # 1. Vollständiges Git-Bundle mit allen Branches, Commits & Tags erstellen
+          git bundle create "/tmp/git-backup/${BUNDLE_FILE}" --all
+          git bundle verify "/tmp/git-backup/${BUNDLE_FILE}"
+
+          # 2. Aktuellen Projektbaum als .tar.gz archivieren (ohne .git für schnellen Datei-Zugriff)
+          tar --exclude='./.git' -czf "/tmp/git-backup/${TAR_FILE}" .
+
+          BUNDLE_SIZE=$(stat -c%s "/tmp/git-backup/${BUNDLE_FILE}")
+          TAR_SIZE=$(stat -c%s "/tmp/git-backup/${TAR_FILE}")
+          BRANCH_LIST=$(git for-each-ref --format='%(refname:short)' refs/heads/ | paste -sd "," -)
+
+          # 3. Backup-Manifest (JSON) schreiben
+          cat <<EOF > "/tmp/git-backup/${MANIFEST_FILE}"
+          {
+            "repository": "${GITHUB_REPOSITORY}",
+            "date_ch": "${DATE_STAMP}",
+            "timestamp_ch": "${TIMESTAMP}",
+            "head_commit": "${COMMIT_SHA}",
+            "branches_included": "${BRANCH_LIST}",
+            "bundle_file": "daily/${DATE_STAMP}/${BUNDLE_FILE}",
+            "bundle_size_bytes": ${BUNDLE_SIZE},
+            "tar_file": "daily/${DATE_STAMP}/${TAR_FILE}",
+            "tar_size_bytes": ${TAR_SIZE},
+            "trigger": "${GITHUB_EVENT_NAME}"
+          }
+          EOF
+
+          cat "/tmp/git-backup/${MANIFEST_FILE}"
+
+          echo "date_stamp=${DATE_STAMP}" >> "$GITHUB_OUTPUT"
+          echo "bundle_file=${BUNDLE_FILE}" >> "$GITHUB_OUTPUT"
+          echo "tar_file=${TAR_FILE}" >> "$GITHUB_OUTPUT"
+          echo "manifest_file=${MANIFEST_FILE}" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure Private Supabase Storage Bucket Exists
+        run: |
+          # Erstellt den privaten Bucket 'git-backups', falls er noch nicht existiert
+          HTTP_STATUS=$(curl -s -o /tmp/bucket_res.json -w "%{http_code}" \
+            -X POST "${SUPABASE_URL}/storage/v1/bucket" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{\"id\": \"${BUCKET_NAME}\", \"name\": \"${BUCKET_NAME}\", \"public\": false}")
+
+          echo "Bucket Check HTTP Status: ${HTTP_STATUS}"
+          cat /tmp/bucket_res.json || true
+
+      - name: Upload Git Bundle, Tarball & Manifest to Supabase Storage
+        run: |
+          DATE_STAMP="${{ steps.archive.outputs.date_stamp }}"
+          BUNDLE_FILE="${{ steps.archive.outputs.bundle_file }}"
+          TAR_FILE="${{ steps.archive.outputs.tar_file }}"
+          MANIFEST_FILE="${{ steps.archive.outputs.manifest_file }}"
+
+          upload_to_supabase() {
+            local local_path="$1"
+            local remote_path="$2"
+            local content_type="$3"
+
+            echo "Uploading ${local_path} -> ${BUCKET_NAME}/${remote_path} ..."
+            STATUS=$(curl -s -o /tmp/upload_res.json -w "%{http_code}" \
+              -X POST "${SUPABASE_URL}/storage/v1/object/${BUCKET_NAME}/${remote_path}" \
+              -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+              -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+              -H "Content-Type: ${content_type}" \
+              -H "x-upsert: true" \
+              --data-binary @"${local_path}")
+
+            if [ "$STATUS" -lt 200 ] || [ "$STATUS" -ge 300 ]; then
+              echo "::error::Upload fehlgeschlagen (HTTP ${STATUS}): $(cat /tmp/upload_res.json)"
+              exit 1
+            fi
+            echo "✓ Erfolgreich gespeichert (HTTP ${STATUS})"
+          }
+
+          # 1. Tägliches datiertes Backup hochladen
+          upload_to_supabase "/tmp/git-backup/${BUNDLE_FILE}" "daily/${DATE_STAMP}/${BUNDLE_FILE}" "application/octet-stream"
+          upload_to_supabase "/tmp/git-backup/${TAR_FILE}" "daily/${DATE_STAMP}/${TAR_FILE}" "application/gzip"
+          upload_to_supabase "/tmp/git-backup/${MANIFEST_FILE}" "daily/${DATE_STAMP}/${MANIFEST_FILE}" "application/json"
+
+          # 2. 'latest'-Zeiger aktualisieren (immer der aktuellste Stand unter fester Adresse)
+          upload_to_supabase "/tmp/git-backup/${BUNDLE_FILE}" "latest/endless-git-latest.bundle" "application/octet-stream"
+          upload_to_supabase "/tmp/git-backup/${MANIFEST_FILE}" "latest/backup-manifest.json" "application/json"
