@@ -72,3 +72,6 @@ SET
   ),
   framing_status = COALESCE(NULLIF(framing_status, ''), 'Ohne Rahmen')
 WHERE material_spec IS NULL OR framing_status IS NULL;
+
+-- 3. PostgREST Schema-Cache sofort neu laden, damit public.categories direkt per API erreichbar ist
+NOTIFY pgrst, 'reload schema';

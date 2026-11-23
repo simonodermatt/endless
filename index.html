@@ -3429,6 +3429,7 @@
               ${a.status === 'sold' ? 'AUF VERFÜGBAR' : 'ALS VERKAUFT'}
             </button>
             <button type="button" data-print-coa="${a.artwork_code}" class="px-2 py-0.5 bg-device-accent text-white font-bold">🖨️ 80mm BON</button>
+            <button type="button" data-del-art="${a.artwork_code}" class="px-2 py-0.5 bg-red-950/60 hover:bg-red-800 text-red-200 border border-red-700">LÖSCHEN</button>
           </td>
         </tr>
       `).join('');
@@ -3479,6 +3480,25 @@
         btn.addEventListener('click', () => {
           const art = state.artworks.find(x => x.artwork_code === btn.getAttribute('data-print-coa'));
           if (art) print80mmArtworkCoA(art);
+        });
+      });
+
+      tbody.querySelectorAll('[data-del-art]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const code = btn.getAttribute('data-del-art');
+          if (!confirm(`Werk ${code} wirklich unwiderruflich aus Supabase löschen?`)) return;
+          const statusEl = document.getElementById('admin-save-status');
+          const { error } = await supabaseClient.from('artworks').delete().eq('artwork_code', code);
+          if (error) {
+            statusEl.textContent = `Fehler beim Löschen von ${code}: ${error.message}`;
+            statusEl.className = 'text-[11px] font-bold text-red-400';
+          } else {
+            statusEl.textContent = `✓ Werk ${code} gelöscht.`;
+            statusEl.className = 'text-[11px] font-bold text-emerald-400';
+            await loadAllSupabaseData();
+            renderAdminTables();
+            renderReceiptFeed();
+          }
         });
       });
 
