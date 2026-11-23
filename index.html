@@ -355,8 +355,8 @@
       </button>
 
       <button data-filter="drawing" class="filter-btn hw-key px-2.5 py-1.5 rounded bg-neutral-100 hover:bg-white border border-neutral-400 text-left shadow-sm">
-        <div class="hw-sub text-[9px] text-neutral-500 font-bold">01 // UNIKATE & 3D</div>
-        <div class="text-[11px] font-bold truncate" data-i18n="filter.drawings">01 // FARBSTIFT</div>
+        <div class="hw-sub text-[9px] text-neutral-500 font-bold">01 // UNIKATE & PRINTS</div>
+        <div class="text-[11px] font-bold truncate" data-i18n="filter.drawings">01 // ZEICHNUNG & PRINT</div>
       </button>
 
       <button data-filter="cyanotype" class="filter-btn hw-key px-2.5 py-1.5 rounded bg-neutral-100 hover:bg-white border border-neutral-400 text-left shadow-sm">
@@ -419,15 +419,24 @@
 
             <div class="perforation-line my-2.5 opacity-60"></div>
 
-            <!-- Schnellsuche & Status-Filter direkt auf dem Beleg -->
+            <!-- Schnellsuche, Jahr-Filter, Sortierung & Status-Filter direkt auf dem Beleg -->
             <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono">
-              <div class="flex items-center gap-1.5 flex-1 min-w-[180px]">
+              <div class="flex items-center gap-1.5 flex-1 min-w-[170px]">
                 <span class="font-bold">SUCHE/ID:</span>
-                <input id="receipt-search-input" type="text" placeholder="z.B. K0064, Gold, Pilatus, A6..."
+                <input id="receipt-search-input" type="text" placeholder="z.B. PRT-20472, Gold, A5..."
                   class="w-full px-2 py-1 bg-transparent border border-thermal-ink text-thermal-ink placeholder-thermal-faded text-[11px] focus:outline-none focus:ring-1 focus:ring-device-accent">
               </div>
 
-              <div class="flex items-center gap-1.5">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <select id="filter-year" class="px-1.5 py-1 bg-thermal-paper border border-thermal-ink text-thermal-ink text-[10px] font-bold">
+                  <option value="ALL">JAHR: ALLE</option>
+                </select>
+                <select id="sort-order" class="px-1.5 py-1 bg-thermal-paper border border-thermal-ink text-thermal-ink text-[10px] font-bold">
+                  <option value="date_desc">SORT: NEUESTE ZUERST</option>
+                  <option value="date_asc">SORT: ÄLTESTE ZUERST</option>
+                  <option value="price_asc">PREIS: AUFSTEIGEND</option>
+                  <option value="price_desc">PREIS: ABSTEIGEND</option>
+                </select>
                 <label class="flex items-center gap-1 cursor-pointer text-[10px]">
                   <input type="checkbox" id="chk-hide-sold" class="accent-neutral-900">
                   <span>NUR VERFÜGBARE</span>
@@ -438,9 +447,14 @@
               </div>
             </div>
 
-            <!-- Dynamische Serien-Schnellwahl (wird bei Alle / Farbstift eingeblendet) -->
-            <div id="series-pill-bar" class="mt-2.5 pt-2 border-t border-dotted border-thermal-ink/30 flex flex-wrap gap-1">
-              <!-- Wird per JS aus den 12 Serien + Supabase-Serien befüllt -->
+            <!-- Dynamische Kategorie-Schnellwahl (inkl. Print & im Admin erweiterte Kategorien) -->
+            <div id="category-pill-bar" class="mt-2.5 pt-2 border-t border-dotted border-thermal-ink/30 flex flex-wrap gap-1">
+              <!-- Wird per JS aus state.categories befüllt -->
+            </div>
+
+            <!-- Dynamische Serien-Schnellwahl -->
+            <div id="series-pill-bar" class="mt-1.5 pt-1.5 border-t border-dotted border-thermal-ink/20 flex flex-wrap gap-1">
+              <!-- Wird per JS aus den Serien befüllt -->
             </div>
           </div>
 
@@ -848,10 +862,13 @@
             02 // DIY-KITS & ZINES
           </button>
           <button data-admin-tab="workshops" class="admin-tab-btn px-3 py-1.5 bg-neutral-900 text-neutral-400 hover:text-white border-t border-x border-neutral-800 font-bold">
-            03 // WORKSHOPS & AUSSTELLUNGEN
+            03 // WORKSHOPS
+          </button>
+          <button data-admin-tab="categories" class="admin-tab-btn px-3 py-1.5 bg-neutral-900 text-neutral-400 hover:text-white border-t border-x border-neutral-800 font-bold">
+            04 // KATEGORIEN & KÜRZEL
           </button>
           <button data-admin-tab="translations" class="admin-tab-btn px-3 py-1.5 bg-neutral-900 text-neutral-400 hover:text-white border-t border-x border-neutral-800 font-bold">
-            04 // TRANSLATIONS (DE/EN)
+            05 // TRANSLATIONS (DE/EN)
           </button>
         </div>
 
@@ -865,9 +882,9 @@
               <!-- Links (7 Spalten): Werk-Formular & Dither-Labor -->
               <form id="form-admin-artwork" class="lg:col-span-7 bg-neutral-950 border border-neutral-800 p-4 space-y-4 text-xs">
                 <div class="flex items-center justify-between border-b border-neutral-800 pb-2">
-                  <h3 class="font-bold text-sm text-device-yellow">NEUES WERK / BELEG SPEICHERN (UPSERT)</h3>
+                  <h3 class="font-bold text-sm text-device-yellow">WERK / BELEG SPEICHERN (AUTO-ID: PRÄFIX-TAGE SEIT 3.11.1970)</h3>
                   <button type="button" id="btn-reset-artwork-form" class="text-[11px] text-neutral-400 hover:text-white underline">
-                    Formular leeren
+                    Neues Werk / Leeren
                   </button>
                 </div>
 
@@ -904,20 +921,32 @@
                 <!-- Werk-Metadaten Felder -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <div>
-                    <label class="block text-[10px] text-neutral-400">WERK-ID (CODE) *</label>
-                    <input type="text" id="art-code" required placeholder="z.B. K0653 oder CYA-2026-09"
+                    <label class="block text-[10px] text-neutral-400">KATEGORIE (MIT KÜRZEL) *</label>
+                    <select id="art-category" class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                      <!-- Dynamisch aus state.categories -->
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-neutral-400">ERSTELLUNGSDATUM *</label>
+                    <input type="date" id="art-created-date" required
                       class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
                   </div>
                   <div>
-                    <label class="block text-[10px] text-neutral-400">KATEGORIE *</label>
-                    <select id="art-category" class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
-                      <option value="drawing">Farbstift-Original (drawing)</option>
-                      <option value="cyanotype">Cyanotypie (cyanotype)</option>
-                      <option value="solargraphy">Solargraphie (solargraphy)</option>
-                      <option value="pinhole">Pinhole-Fotografie (pinhole)</option>
-                      <option value="relief_3d">3D-Relief & Blattgold (relief_3d)</option>
-                      <option value="mixed_media">Mixed Media / Audio-Visuell</option>
-                    </select>
+                    <label class="block text-[10px] text-neutral-400">WERK-ID (AUTO: KÜRZEL-TAGE) *</label>
+                    <div class="flex gap-1">
+                      <input type="text" id="art-code" required placeholder="PRT-20472"
+                        class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-amber-300 font-bold">
+                      <button type="button" id="btn-recalc-code" title="ID aus Kategorie & Datum neu berechnen"
+                        class="px-2 py-1 bg-neutral-800 hover:bg-neutral-700 border border-neutral-600 text-[10px] font-bold">
+                        ⟳
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="sm:col-span-2">
+                    <label class="block text-[10px] text-neutral-400">TITEL (DE) *</label>
+                    <input type="text" id="art-title-de" required placeholder="Goldader im Preussischblau"
+                      class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
                   </div>
                   <div>
                     <label class="block text-[10px] text-neutral-400">PREIS (CHF) *</label>
@@ -926,8 +955,8 @@
                   </div>
 
                   <div class="sm:col-span-2">
-                    <label class="block text-[10px] text-neutral-400">TITEL (DE) *</label>
-                    <input type="text" id="art-title-de" required placeholder="Goldader im Preussischblau"
+                    <label class="block text-[10px] text-neutral-400">MEDIUM / TECHNIK *</label>
+                    <input type="text" id="art-medium" required placeholder="Cyanotypie-Sonnendruck, Buntstift, Fine-Art-Print..."
                       class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
                   </div>
                   <div>
@@ -937,14 +966,21 @@
                   </div>
 
                   <div class="sm:col-span-2">
-                    <label class="block text-[10px] text-neutral-400">MEDIUM / TECHNIK *</label>
-                    <input type="text" id="art-medium" required placeholder="Cyanotypie-Sonnendruck mit 24k Kintsugi-Gold"
+                    <label class="block text-[10px] text-neutral-400">MATERIAL / TRÄGER & GEWICHT (FREITEXT)</label>
+                    <input type="text" id="art-material-spec" placeholder="z.B. 300 g/m² Arches Bütten, Birkenholz-Panel, Alu..."
                       class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
                   </div>
                   <div>
-                    <label class="block text-[10px] text-neutral-400">PAPIERGEWICHT (g/m²)</label>
-                    <input type="number" id="art-gsm" placeholder="300"
+                    <label class="block text-[10px] text-neutral-400">RAHMUNG / PRÄSENTATION *</label>
+                    <input type="text" id="art-framing" list="framing-presets" placeholder="Ohne Rahmen / Gerahmt..."
                       class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                    <datalist id="framing-presets">
+                      <option value="Ohne Rahmen"></option>
+                      <option value="Gerahmt (Eiche massiv)"></option>
+                      <option value="Gerahmt (Schwarz / Museumsglas)"></option>
+                      <option value="Auf Holzpanel montiert"></option>
+                      <option value="Rolle / Hängeleiste"></option>
+                    </datalist>
                   </div>
 
                   <div>
@@ -958,12 +994,6 @@
                       class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
                   </div>
                   <div>
-                    <label class="block text-[10px] text-neutral-400">BELICHTUNGSZEIT</label>
-                    <input type="text" id="art-exposure" placeholder="16 Min 40 Sek / 182 Tage"
-                      class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
-                  </div>
-
-                  <div>
                     <label class="block text-[10px] text-neutral-400">STATUS</label>
                     <select id="art-status" class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
                       <option value="available">Verfügbar (available)</option>
@@ -972,6 +1002,7 @@
                       <option value="draft">Entwurf (draft)</option>
                     </select>
                   </div>
+
                   <div>
                     <label class="block text-[10px] text-neutral-400">EDITION TOTAL</label>
                     <input type="number" id="art-ed-size" value="1" min="1"
@@ -981,6 +1012,9 @@
                     <label class="block text-[10px] text-neutral-400">NOCH VERFÜGBAR</label>
                     <input type="number" id="art-ed-rem" value="1" min="0"
                       class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                  </div>
+                  <div class="flex items-end pb-1">
+                    <span class="text-[10px] text-neutral-500">Geburtsdatum-Basis: 03.11.1970</span>
                   </div>
 
                   <div class="sm:col-span-3">
@@ -1008,7 +1042,7 @@
                 <div class="w-full max-w-sm bg-[#F4F4F0] text-[#141414] p-4 font-receipt text-xs border border-neutral-400 shadow-xl space-y-2">
                   <div class="flex justify-between text-[10px] font-mono border-b border-black pb-1">
                     <span id="prev-code">ID: NEU-001</span>
-                    <span>[ VORSCHAU ]</span>
+                    <span id="prev-date">DATUM: --</span>
                   </div>
                   <div class="grid grid-cols-2 gap-2 py-1">
                     <div>
@@ -1021,7 +1055,7 @@
                     </div>
                   </div>
                   <div id="prev-title" class="font-bold text-sm">WERK-TITEL</div>
-                  <div id="prev-meta" class="text-[11px] font-mono">Medium • Format</div>
+                  <div id="prev-meta" class="text-[11px] font-mono">Medium • Format • Rahmung</div>
                   <div class="flex justify-between items-center border-t border-black pt-1.5 font-mono font-bold">
                     <span>PREIS:</span>
                     <span id="prev-price">0.00 CHF</span>
@@ -1038,8 +1072,10 @@
                   <thead>
                     <tr class="border-b border-neutral-700 text-neutral-400">
                       <th class="py-1.5 px-2">CODE</th>
+                      <th class="py-1.5 px-2">DATUM</th>
                       <th class="py-1.5 px-2">TITEL</th>
                       <th class="py-1.5 px-2">KATEGORIE</th>
+                      <th class="py-1.5 px-2">RAHMUNG</th>
                       <th class="py-1.5 px-2">PREIS</th>
                       <th class="py-1.5 px-2">STATUS</th>
                       <th class="py-1.5 px-2">AKTIONEN / 80mm DRUCK</th>
@@ -1053,55 +1089,210 @@
             </div>
           </div>
 
-          <!-- TAB 02: DIY-KITS & PRODUKTE -->
+          <!-- TAB 02: DIY-KITS & PRODUKTE (MIT FOTO-UPLOAD & EDIT) -->
           <div id="admin-tab-products" class="hidden space-y-4">
             <div class="bg-neutral-950 border border-neutral-800 p-4 space-y-3 text-xs">
-              <h3 class="font-bold text-sm text-device-yellow">DIY-KIT / ZINE ANLEGEN ODER BEARBEITEN (`public.products`)</h3>
-              <form id="form-admin-product" class="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
-                <input type="text" id="prod-sku" required placeholder="SKU (z.B. KIT-PIN-02)" class="px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
-                <input type="text" id="prod-title" required placeholder="Titel (DE)" class="sm:col-span-2 px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
-                <select id="prod-type" class="px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
-                  <option value="diy_camera_kit">DIY Lochkamera-Kit</option>
-                  <option value="cyanotype_kit">Cyanotypie-Set</option>
-                  <option value="zine">Gedrucktes Zine</option>
-                  <option value="postcard_set">Postkarten-Set</option>
-                </select>
-                <input type="number" step="0.05" id="prod-price" required placeholder="Preis CHF (45.00)" class="px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
-                <input type="number" id="prod-stock" required placeholder="Lagerbestand (25)" class="px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
-                <input type="text" id="prod-dims" placeholder="Mass (148 x 210 mm)" class="sm:col-span-2 px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
-                <textarea id="prod-desc" rows="2" required placeholder="Beschreibung & Lieferumfang..." class="sm:col-span-3 px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white"></textarea>
-                <button type="submit" class="px-3 py-2 bg-device-accent text-white font-bold">PRODUKT SPEICHERN</button>
+              <div class="flex items-center justify-between border-b border-neutral-800 pb-2">
+                <h3 class="font-bold text-sm text-device-yellow">DIY-KIT / ZINE ANLEGEN ODER BEARBEITEN (`public.products`)</h3>
+                <button type="button" id="btn-reset-product-form" class="text-[11px] text-neutral-400 hover:text-white underline">
+                  Formular leeren
+                </button>
+              </div>
+              <form id="form-admin-product" class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                <div class="lg:col-span-8 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div>
+                    <label class="block text-[10px] text-neutral-400">SKU *</label>
+                    <input type="text" id="prod-sku" required placeholder="KIT-PIN-02" class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                  </div>
+                  <div class="sm:col-span-2">
+                    <label class="block text-[10px] text-neutral-400">TITEL (DE) *</label>
+                    <input type="text" id="prod-title" required placeholder="Origami-Lochkamera-Kit" class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                  </div>
+                  <div class="sm:col-span-2">
+                    <label class="block text-[10px] text-neutral-400">UNTERTITEL</label>
+                    <input type="text" id="prod-subtitle" placeholder="Komplettes Selbstbau-Set..." class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-neutral-400">PRODUKT-TYP</label>
+                    <select id="prod-type" class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                      <option value="diy_camera_kit">DIY Lochkamera-Kit</option>
+                      <option value="cyanotype_kit">Cyanotypie-Set</option>
+                      <option value="zine">Gedrucktes Zine</option>
+                      <option value="postcard_set">Postkarten-Set</option>
+                      <option value="merch_tool">Atelier-Zubehör</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-neutral-400">PREIS (CHF) *</label>
+                    <input type="number" step="0.05" id="prod-price" required placeholder="45.00" class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-neutral-400">LAGERBESTAND *</label>
+                    <input type="number" id="prod-stock" required placeholder="25" class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-neutral-400">DIMENSIONEN (mm)</label>
+                    <input type="text" id="prod-dims" placeholder="148 x 210 mm" class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                  </div>
+                  <div class="sm:col-span-3">
+                    <label class="block text-[10px] text-neutral-400">BESCHREIBUNG & LIEFERUMFANG *</label>
+                    <textarea id="prod-desc" rows="2" required placeholder="Beschreibung & Lieferumfang..." class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white"></textarea>
+                  </div>
+                  <div class="sm:col-span-3 flex items-center justify-between pt-1">
+                    <span id="prod-save-status" class="text-[11px] font-bold text-emerald-400"></span>
+                    <button type="submit" class="px-4 py-2 bg-device-accent hover:bg-orange-600 text-white font-bold">PRODUKT SPEICHERN</button>
+                  </div>
+                </div>
+                <!-- Foto-Upload für Kit/Produkt -->
+                <div class="lg:col-span-4 border border-dashed border-neutral-700 p-3 bg-neutral-900/50 space-y-2">
+                  <label class="block font-bold text-[11px] text-white">
+                    📷 PRODUKT-FOTO LADEN:
+                    <input type="file" id="prod-img-input" accept="image/*" class="block mt-1 text-[11px] text-neutral-300 w-full">
+                  </label>
+                  <div class="grid grid-cols-2 gap-2">
+                    <canvas id="prod-dither-preview" width="384" height="384" class="w-full aspect-square border border-neutral-600 pixelated bg-white"></canvas>
+                    <canvas id="prod-color-preview" width="400" height="400" class="w-full aspect-square border border-neutral-600 bg-neutral-800"></canvas>
+                  </div>
+                </div>
               </form>
             </div>
             <div id="admin-products-list" class="bg-neutral-950 border border-neutral-800 p-4 text-xs"></div>
           </div>
 
-          <!-- TAB 03: WORKSHOPS & AUSSTELLUNGEN -->
+          <!-- TAB 03: WORKSHOPS (MIT FOTO-UPLOAD & EDIT) -->
           <div id="admin-tab-workshops" class="hidden space-y-4">
             <div class="bg-neutral-950 border border-neutral-800 p-4 space-y-3 text-xs">
-              <h3 class="font-bold text-sm text-device-yellow">WORKSHOP IN LUZERN / BERN SPEICHERN (`public.workshops`)</h3>
-              <form id="form-admin-workshop" class="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
-                <input type="text" id="ws-code" required placeholder="Code (WS-BE-2026-01)" class="px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
-                <input type="text" id="ws-title" required placeholder="Workshop-Titel" class="sm:col-span-2 px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
-                <select id="ws-topic" class="px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
-                  <option value="cyanotype_outdoor">Cyanotypie im Freien</option>
-                  <option value="pinhole_build">Pinhole-Bau & Entwicklung</option>
-                  <option value="solargraphy_lab">Solargraphie-Labor</option>
-                  <option value="drawing_intensive">Farbstift-Schichttechnik</option>
-                </select>
-                <input type="text" id="ws-city" required placeholder="Stadt (Luzern / Bern)" class="px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
-                <input type="text" id="ws-venue" required placeholder="Ort (z.B. Neubad / PROGR)" class="px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
-                <input type="datetime-local" id="ws-start" required class="px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
-                <input type="number" step="0.05" id="ws-price" required placeholder="Ticket CHF (165.00)" class="px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
-                <input type="number" id="ws-seats" required placeholder="Freie Plätze (8)" class="px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
-                <textarea id="ws-desc" rows="2" required placeholder="Workshop-Beschreibung..." class="sm:col-span-2 px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white"></textarea>
-                <button type="submit" class="px-3 py-2 bg-device-accent text-white font-bold">WORKSHOP SPEICHERN</button>
+              <div class="flex items-center justify-between border-b border-neutral-800 pb-2">
+                <h3 class="font-bold text-sm text-device-yellow">WORKSHOP ANLEGEN ODER BEARBEITEN (`public.workshops`)</h3>
+                <button type="button" id="btn-reset-workshop-form" class="text-[11px] text-neutral-400 hover:text-white underline">
+                  Formular leeren
+                </button>
+              </div>
+              <form id="form-admin-workshop" class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                <div class="lg:col-span-8 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div>
+                    <label class="block text-[10px] text-neutral-400">WORKSHOP-CODE *</label>
+                    <input type="text" id="ws-code" required placeholder="WS-BE-2026-01" class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                  </div>
+                  <div class="sm:col-span-2">
+                    <label class="block text-[10px] text-neutral-400">TITEL *</label>
+                    <input type="text" id="ws-title" required placeholder="LABOR 02 // Workshop-Titel" class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                  </div>
+                  <div class="sm:col-span-2">
+                    <label class="block text-[10px] text-neutral-400">UNTERTITEL</label>
+                    <input type="text" id="ws-subtitle" placeholder="Kurzbeschreibung..." class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-neutral-400">THEMA</label>
+                    <select id="ws-topic" class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                      <option value="cyanotype_outdoor">Cyanotypie im Freien</option>
+                      <option value="pinhole_build">Pinhole-Bau & Entwicklung</option>
+                      <option value="solargraphy_lab">Solargraphie-Labor</option>
+                      <option value="drawing_intensive">Farbstift-Schichttechnik</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-neutral-400">STADT *</label>
+                    <input type="text" id="ws-city" required placeholder="Luzern / Bern" class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                  </div>
+                  <div class="sm:col-span-2">
+                    <label class="block text-[10px] text-neutral-400">ORT / LOCATION *</label>
+                    <input type="text" id="ws-venue" required placeholder="z.B. Neubad / PROGR" class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-neutral-400">STARTZEIT *</label>
+                    <input type="datetime-local" id="ws-start" required class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-neutral-400">DAUER (STD.)</label>
+                    <input type="number" step="0.5" id="ws-duration" value="4.0" class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-neutral-400">TICKETPREIS (CHF) *</label>
+                    <input type="number" step="0.05" id="ws-price" required placeholder="165.00" class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-neutral-400">FREIE PLÄTZE *</label>
+                    <input type="number" id="ws-seats" required placeholder="8" class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-neutral-400">MAX. TEILNEHMENDE</label>
+                    <input type="number" id="ws-max-seats" value="8" class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-neutral-400">STATUS</label>
+                    <select id="ws-status" class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                      <option value="open">Offen (open)</option>
+                      <option value="almost_full">Fast voll (almost_full)</option>
+                      <option value="sold_out">Ausgebucht (sold_out)</option>
+                      <option value="completed">Abgeschlossen (completed)</option>
+                    </select>
+                  </div>
+                  <div class="sm:col-span-3">
+                    <label class="block text-[10px] text-neutral-400">BESCHREIBUNG *</label>
+                    <textarea id="ws-desc" rows="2" required placeholder="Workshop-Beschreibung..." class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white"></textarea>
+                  </div>
+                  <div class="sm:col-span-3 flex items-center justify-between pt-1">
+                    <span id="ws-save-status" class="text-[11px] font-bold text-emerald-400"></span>
+                    <button type="submit" class="px-4 py-2 bg-device-accent hover:bg-orange-600 text-white font-bold">WORKSHOP SPEICHERN</button>
+                  </div>
+                </div>
+                <!-- Foto-Upload für Workshop -->
+                <div class="lg:col-span-4 border border-dashed border-neutral-700 p-3 bg-neutral-900/50 space-y-2">
+                  <label class="block font-bold text-[11px] text-white">
+                    📷 WORKSHOP-FOTO LADEN:
+                    <input type="file" id="ws-img-input" accept="image/*" class="block mt-1 text-[11px] text-neutral-300 w-full">
+                  </label>
+                  <div class="grid grid-cols-2 gap-2">
+                    <canvas id="ws-dither-preview" width="384" height="384" class="w-full aspect-square border border-neutral-600 pixelated bg-white"></canvas>
+                    <canvas id="ws-color-preview" width="400" height="400" class="w-full aspect-square border border-neutral-600 bg-neutral-800"></canvas>
+                  </div>
+                </div>
               </form>
             </div>
             <div id="admin-workshops-list" class="bg-neutral-950 border border-neutral-800 p-4 text-xs"></div>
           </div>
 
-          <!-- TAB 04: TRANSLATIONS EDITOR -->
+          <!-- TAB 04: KATEGORIEN & KÜRZEL MANAGER -->
+          <div id="admin-tab-categories" class="hidden space-y-4">
+            <div class="bg-neutral-950 border border-neutral-800 p-4 space-y-3 text-xs">
+              <div class="flex items-center justify-between border-b border-neutral-800 pb-2">
+                <h3 class="font-bold text-sm text-device-yellow">KATEGORIEN & WERK-ID KÜRZEL VERWALTEN (`public.categories`)</h3>
+                <button type="button" id="btn-reset-category-form" class="text-[11px] text-neutral-400 hover:text-white underline">
+                  Formular leeren
+                </button>
+              </div>
+              <form id="form-admin-category" class="grid grid-cols-1 sm:grid-cols-6 gap-2.5">
+                <div>
+                  <label class="block text-[10px] text-neutral-400">SLUG (KEY) *</label>
+                  <input type="text" id="cat-slug" required placeholder="print" class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                </div>
+                <div>
+                  <label class="block text-[10px] text-neutral-400">KÜRZEL / PRÄFIX *</label>
+                  <input type="text" id="cat-prefix" required placeholder="PRT" class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-amber-300 font-bold uppercase">
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="block text-[10px] text-neutral-400">NAME (DE) *</label>
+                  <input type="text" id="cat-name-de" required placeholder="Print / Fine-Art-Print" class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                </div>
+                <div>
+                  <label class="block text-[10px] text-neutral-400">NAME (EN)</label>
+                  <input type="text" id="cat-name-en" placeholder="Fine Art Print" class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                </div>
+                <div>
+                  <label class="block text-[10px] text-neutral-400">SORTIERUNG</label>
+                  <input type="number" id="cat-sort" value="10" class="w-full px-2 py-1.5 bg-neutral-900 border border-neutral-700 text-white">
+                </div>
+                <div class="sm:col-span-6 flex items-center justify-between pt-1">
+                  <span id="cat-save-status" class="text-[11px] font-bold text-emerald-400"></span>
+                  <button type="submit" class="px-4 py-2 bg-device-accent hover:bg-orange-600 text-white font-bold">KATEGORIE SPEICHERN</button>
+                </div>
+              </form>
+            </div>
+            <div id="admin-categories-list" class="bg-neutral-950 border border-neutral-800 p-4 text-xs"></div>
+          </div>
+
+          <!-- TAB 05: TRANSLATIONS EDITOR -->
           <div id="admin-tab-translations" class="hidden space-y-4">
             <div class="bg-neutral-950 border border-neutral-800 p-4 space-y-3 text-xs">
               <h3 class="font-bold text-sm text-device-yellow">TEXT-TABELLE & SPRACH-LABELS (`public.translations`)</h3>
@@ -1480,17 +1671,57 @@
       }
     ];
 
+    const FALLBACK_CATEGORIES = [
+      { slug: 'drawing',     prefix: 'Z',   name_de: 'Farbstift-Original',     name_en: 'Colored Pencil Original', sort_order: 10, is_active: true },
+      { slug: 'print',       prefix: 'PRT', name_de: 'Print / Fine-Art-Print', name_en: 'Fine Art Print',          sort_order: 20, is_active: true },
+      { slug: 'cyanotype',   prefix: 'CYA', name_de: 'Cyanotypie',             name_en: 'Cyanotype',               sort_order: 30, is_active: true },
+      { slug: 'solargraphy', prefix: 'SOL', name_de: 'Solargraphie',           name_en: 'Solargraphy',             sort_order: 40, is_active: true },
+      { slug: 'pinhole',     prefix: 'PIN', name_de: 'Pinhole-Fotografie',     name_en: 'Pinhole Photography',     sort_order: 50, is_active: true },
+      { slug: 'relief_3d',   prefix: 'REL', name_de: '3D-Relief & Blattgold',  name_en: '3D Relief & Gold Leaf',   sort_order: 60, is_active: true },
+      { slug: 'mixed_media', prefix: 'MIX', name_de: 'Mixed Media / Hybrid',   name_en: 'Mixed Media / Hybrid',    sort_order: 70, is_active: true }
+    ];
+
+    // Geburtsdatum 3.11.1970 (UTC) für automatische Werk-ID Berechnung: <PRÄFIX>-<TAGE>
+    const SIMON_BIRTHDATE_UTC = Date.UTC(1970, 10, 3);
+
+    function calculateArtworkCode(categorySlug, dateStr) {
+      const cat = state.categories.find(c => c.slug === categorySlug);
+      const prefix = (cat && cat.prefix ? cat.prefix : categorySlug.slice(0, 3)).toUpperCase();
+      const parts = (dateStr || new Date().toISOString().split('T')[0]).split('-').map(Number);
+      if (parts.length !== 3 || parts.some(isNaN)) return `${prefix}-00000`;
+      const targetUtc = Date.UTC(parts[0], parts[1] - 1, parts[2]);
+      const days = Math.max(0, Math.floor((targetUtc - SIMON_BIRTHDATE_UTC) / 86400000));
+      return `${prefix}-${days}`;
+    }
+
+    function getArtworkDate(art) {
+      if (art.created_date) return String(art.created_date).slice(0, 10);
+      if (art.created_year) return `${art.created_year}-01-01`;
+      if (art.printed_at) return String(art.printed_at).slice(0, 10);
+      return '2026-01-01';
+    }
+
+    function getArtworkYear(art) {
+      if (art.created_date) return Number(String(art.created_date).slice(0, 4));
+      if (art.created_year) return Number(art.created_year);
+      return 2026;
+    }
+
     /* ---------------------------------------------------------------------
        4. GLOBAL APPLICATION STATE
        --------------------------------------------------------------------- */
     const state = {
       lang: 'de',
       activeFilter: 'all',
+      activeCategoryPill: 'ALL',
       activeSeries: 'ALL',
+      activeYear: 'ALL',
+      sortOrder: 'date_desc',
       searchQuery: '',
       hideSold: false,
       developAll: false,
       translations: {},
+      categories: [...FALLBACK_CATEGORIES],
       artworks: [],
       products: [],
       workshops: [],
@@ -1787,13 +2018,21 @@
       lcdText.textContent = 'SYNCING SUPABASE...';
 
       try {
-        const [trRes, artRes, prodRes, wsRes, exhRes] = await Promise.all([
+        const [trRes, catRes, artRes, prodRes, wsRes, exhRes] = await Promise.all([
           supabaseClient.from('translations').select('*'),
+          supabaseClient.from('categories').select('*').order('sort_order', { ascending: true }),
           supabaseClient.from('artworks').select('*').order('sort_order', { ascending: false }).order('printed_at', { ascending: false }),
           supabaseClient.from('products').select('*').order('sort_order', { ascending: true }),
           supabaseClient.from('workshops').select('*').order('start_time', { ascending: true }),
           supabaseClient.from('exhibitions').select('*').order('start_date', { ascending: false })
         ]);
+
+        // 0. Categories (Live Supabase oder Fallback inkl. Print)
+        if (catRes.data && catRes.data.length > 0) {
+          state.categories = catRes.data;
+        } else {
+          state.categories = [...FALLBACK_CATEGORIES];
+        }
 
         // 1. Translations aufbereiten
         if (trRes.data) {
@@ -1835,16 +2074,23 @@
           ...FALLBACK_EXHIBITIONS.filter(f => !dbExhCodes.has(f.exhibition_code))
         ];
 
+        populateCategorySelects();
+        populateYearFilter();
+        renderCategoryPillBar();
         renderSeriesPillBar();
         renderReceiptFeed();
 
         lcdText.textContent = t('terminal.status_ready', 'BEREIT // ROLLE EINGEFÄDELT');
       } catch (err) {
         console.error('Supabase Sync Error:', err);
+        state.categories = [...FALLBACK_CATEGORIES];
         state.artworks = [...FALLBACK_ARCHIVE_ARTWORKS];
         state.products = [...FALLBACK_PRODUCTS];
         state.workshops = [...FALLBACK_WORKSHOPS];
         state.exhibitions = [...FALLBACK_EXHIBITIONS];
+        populateCategorySelects();
+        populateYearFilter();
+        renderCategoryPillBar();
         renderSeriesPillBar();
         renderReceiptFeed();
       }
@@ -1868,6 +2114,89 @@
     /* ---------------------------------------------------------------------
        7. RENDERING DES ENDLOS-BELEGS (RECEIPT FEED)
        --------------------------------------------------------------------- */
+    function getCategoryMeta(slug) {
+      return state.categories.find(c => c.slug === slug) || { slug, prefix: (slug || 'ART').slice(0, 3).toUpperCase(), name_de: slug, name_en: slug };
+    }
+
+    function getMaterialDisplay(art) {
+      if (art.material_spec) return art.material_spec;
+      const parts = [];
+      if (art.paper_weight_gsm) parts.push(`${art.paper_weight_gsm} g/m²`);
+      if (art.paper_type) parts.push(art.paper_type);
+      return parts.join(' ') || 'Atelier-Träger';
+    }
+
+    function getFramingDisplay(art) {
+      const map = {
+        unframed: 'Ohne Rahmen',
+        mounted_on_wood: 'Auf Holzpanel montiert',
+        framed_oak: 'Gerahmt (Eiche)',
+        framed_black: 'Gerahmt (Schwarz)',
+        installation_scroll: 'Rolle / Installation'
+      };
+      if (!art.framing_status) return 'Ohne Rahmen';
+      return map[art.framing_status] || art.framing_status;
+    }
+
+    function populateCategorySelects() {
+      const sel = document.getElementById('art-category');
+      if (!sel) return;
+      const currentVal = sel.value;
+      sel.innerHTML = state.categories
+        .filter(c => c.is_active !== false)
+        .map(c => `<option value="${c.slug}">${c.name_de} [${c.prefix}]</option>`)
+        .join('');
+      if (currentVal && state.categories.some(c => c.slug === currentVal)) {
+        sel.value = currentVal;
+      }
+    }
+
+    function populateYearFilter() {
+      const sel = document.getElementById('filter-year');
+      if (!sel) return;
+      const years = [...new Set(state.artworks.map(getArtworkYear))].sort((a, b) => b - a);
+      const prev = state.activeYear || 'ALL';
+      sel.innerHTML = `<option value="ALL">JAHR: ALLE</option>` + years.map(y => `<option value="${y}">JAHR: ${y}</option>`).join('');
+      sel.value = years.map(String).includes(String(prev)) ? String(prev) : 'ALL';
+    }
+
+    function renderCategoryPillBar() {
+      const bar = document.getElementById('category-pill-bar');
+      if (!bar) return;
+      if (state.activeFilter === 'kits' || state.activeFilter === 'workshops') {
+        bar.classList.add('hidden');
+        return;
+      }
+      bar.classList.remove('hidden');
+
+      const allBtn = `
+        <button data-cat="ALL" class="cat-pill px-2 py-0.5 border border-thermal-ink font-mono text-[10px] transition-colors ${state.activeCategoryPill === 'ALL' ? 'bg-device-accent text-white font-bold border-device-accent' : 'hover:bg-black/10'}">
+          ALLE KATEGORIEN
+        </button>
+      `;
+      const pills = state.categories
+        .filter(c => c.is_active !== false)
+        .map(c => {
+          const isActive = state.activeCategoryPill === c.slug;
+          const label = state.lang === 'en' ? (c.name_en || c.name_de) : c.name_de;
+          return `
+            <button data-cat="${c.slug}" class="cat-pill px-2 py-0.5 border border-thermal-ink font-mono text-[10px] transition-colors ${isActive ? 'bg-device-accent text-white font-bold border-device-accent' : 'hover:bg-black/10'}">
+              [${c.prefix}] ${label}
+            </button>
+          `;
+        }).join('');
+
+      bar.innerHTML = allBtn + pills;
+      bar.querySelectorAll('.cat-pill').forEach(btn => {
+        btn.addEventListener('click', () => {
+          sound.playClick();
+          state.activeCategoryPill = btn.getAttribute('data-cat');
+          renderCategoryPillBar();
+          renderReceiptFeed(true);
+        });
+      });
+    }
+
     function renderSeriesPillBar() {
       const bar = document.getElementById('series-pill-bar');
       if (state.activeFilter !== 'all' && state.activeFilter !== 'drawing') {
@@ -1911,15 +2240,10 @@
       const visuals = getVisualPairForItem(art);
       const isSold = art.status === 'sold' || Number(art.edition_remaining) <= 0;
       const developedClass = state.developAll ? 'is-developed' : '';
-
-      const catLabels = {
-        drawing: 'FARBSTIFT-UNIKAT',
-        cyanotype: 'CYANOTYPIE // SONNENDRUCK',
-        solargraphy: '180-TAGE SOLARGRAPHIE',
-        pinhole: 'PINHOLE // LOCHKAMERA',
-        relief_3d: '3D-RELIEF & BLATTGOLD',
-        mixed_media: 'HYBRID // MIXED MEDIA'
-      };
+      const catMeta = getCategoryMeta(art.category);
+      const artDate = getArtworkDate(art);
+      const materialText = getMaterialDisplay(art);
+      const framingText = getFramingDisplay(art);
 
       const statusBadge = isSold
         ? `<span class="px-1.5 py-0.5 border border-thermal-ink font-bold text-[10px] line-through opacity-75">[ ${t('receipt.sold_stamp', 'VERGRIFFEN // IM ARCHIV')} ]</span>`
@@ -1931,7 +2255,8 @@
           <div class="flex flex-wrap items-center justify-between gap-1 text-[10px] font-mono border-b border-thermal-ink pb-1.5">
             <div>
               <span class="font-bold">WERK-ID: ${art.artwork_code}</span>
-              <span class="text-thermal-faded ml-2">// ${catLabels[art.category] || art.category.toUpperCase()}</span>
+              <span class="text-thermal-faded ml-2">// ${(catMeta.name_de || art.category).toUpperCase()}</span>
+              <span class="text-thermal-faded ml-2">• ${artDate}</span>
             </div>
             ${statusBadge}
           </div>
@@ -1956,7 +2281,7 @@
 
             <!-- HUD-Overlay oben links auf dem Bild -->
             <div class="absolute top-2 left-2 px-2 py-0.5 bg-black/80 text-white font-mono text-[9px] tracking-wider">
-              [ ${art.artwork_code} ] ${art.exposure_time ? `• EXP: ${art.exposure_time}` : ''}
+              [ ${art.artwork_code} ] • ${artDate}
             </div>
 
             <!-- Interaktions-Buttons unten auf dem Bild -->
@@ -1985,18 +2310,21 @@
           <table class="receipt-table font-mono text-[10px] mt-2.5">
             <tbody>
               <tr>
-                <th class="w-1/3 bg-black/[0.04]">MEDIUM / TECHNIK</th>
+                <th class="w-1/3 bg-black/[0.04]">ERSTELLUNGSDATUM</th>
+                <td>${artDate} (${getArtworkYear(art)})</td>
+              </tr>
+              <tr>
+                <th class="bg-black/[0.04]">MEDIUM / TECHNIK</th>
                 <td>${art.medium}</td>
               </tr>
               <tr>
-                <th class="bg-black/[0.04]">FORMAT & TRÄGER</th>
-                <td>${art.dimensions_mm} (${art.format_label || 'Original'}) • ${art.paper_type || 'Bütten'} ${art.paper_weight_gsm ? `${art.paper_weight_gsm} g/m²` : ''}</td>
+                <th class="bg-black/[0.04]">FORMAT & MATERIAL</th>
+                <td>${art.dimensions_mm}${art.format_label ? ` (${art.format_label})` : ''} • ${materialText}</td>
               </tr>
-              ${art.exposure_time || art.uv_source ? `
               <tr>
-                <th class="bg-black/[0.04]">BELICHTUNG / LICHT</th>
-                <td>${art.exposure_time || '-'} ${art.uv_source ? `// ${art.uv_source}` : ''}</td>
-              </tr>` : ''}
+                <th class="bg-black/[0.04]">RAHMUNG</th>
+                <td class="font-bold">${framingText}</td>
+              </tr>
               ${art.aperture || art.coordinates ? `
               <tr>
                 <th class="bg-black/[0.04]">OPTIK & KOORDINATEN</th>
@@ -2087,6 +2415,7 @@
         ? new Date(ws.start_time).toLocaleDateString('de-CH', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
         : 'Termin nach Vereinbarung';
       const materials = (ws.materials_included || []).map(m => `<li>✓ ${m}</li>`).join('');
+      const visuals = getVisualPairForItem(ws);
 
       return `
         <article class="receipt-entry border-2 border-thermal-ink p-3.5 bg-thermal-paperBright/60">
@@ -2097,11 +2426,19 @@
             </span>
           </div>
 
-          <h3 class="text-sm sm:text-base font-bold mt-2">${ws.title_de}</h3>
-          <div class="text-[11px] font-mono text-thermal-faded">${ws.subtitle_de || ''}</div>
-          <p class="text-xs mt-1.5 leading-snug">${ws.description_de}</p>
+          <div class="grid grid-cols-1 sm:grid-cols-5 gap-3 my-2.5 items-center">
+            <div class="sm:col-span-2 chemical-stage border border-thermal-ink aspect-square ${state.developAll ? 'is-developed' : ''}">
+              <img src="${visuals.ditherSrc}" onerror="this.onerror=null;this.src='${visuals.fallbackDither}';" class="w-full h-full object-cover pixelated" alt="${ws.title_de}">
+              <img src="${visuals.colorSrc}" onerror="this.onerror=null;this.src='${visuals.fallbackColor}';" class="color-layer" alt="${ws.title_de}">
+            </div>
+            <div class="sm:col-span-3 space-y-1">
+              <h3 class="text-sm sm:text-base font-bold">${ws.title_de}</h3>
+              <div class="text-[11px] font-mono text-thermal-faded">${ws.subtitle_de || ''}</div>
+              <p class="text-xs pt-1 leading-snug">${ws.description_de}</p>
+            </div>
+          </div>
 
-          <table class="receipt-table font-mono text-[10px] mt-2.5">
+          <table class="receipt-table font-mono text-[10px] mt-2">
             <tbody>
               <tr>
                 <th class="w-1/3 bg-black/[0.04]">TERMIN & DAUER</th>
@@ -2166,23 +2503,34 @@
         setTimeout(() => printer.classList.remove('head-vibrating'), 240);
       }
 
-      // 1. Kunstwerke filtern
-      const filteredArtworks = state.artworks.filter(a => {
+      // 1. Kunstwerke filtern & sortieren
+      let filteredArtworks = state.artworks.filter(a => {
         if (state.hideSold && a.status === 'sold') return false;
-        if (state.activeFilter === 'drawing' && a.category !== 'drawing' && a.category !== 'relief_3d') return false;
+        if (state.activeFilter === 'drawing' && !['drawing', 'print', 'relief_3d'].includes(a.category)) return false;
         if (state.activeFilter === 'cyanotype' && a.category !== 'cyanotype') return false;
         if (state.activeFilter === 'pinhole' && a.category !== 'pinhole' && a.category !== 'solargraphy') return false;
         if (state.activeFilter === 'kits' || state.activeFilter === 'workshops') return false;
+
+        if (state.activeCategoryPill !== 'ALL' && a.category !== state.activeCategoryPill) return false;
+        if (state.activeYear !== 'ALL' && String(getArtworkYear(a)) !== String(state.activeYear)) return false;
 
         if ((state.activeFilter === 'all' || state.activeFilter === 'drawing') && state.activeSeries !== 'ALL') {
           if (a.series_code !== state.activeSeries) return false;
         }
 
         if (q) {
-          const hay = `${a.artwork_code} ${a.title_de} ${a.title_en || ''} ${a.series_name || ''} ${a.medium || ''} ${a.format_label || ''} ${a.color_mood || ''}`.toLowerCase();
+          const hay = `${a.artwork_code} ${a.title_de} ${a.title_en || ''} ${a.series_name || ''} ${a.medium || ''} ${a.material_spec || ''} ${a.framing_status || ''} ${a.format_label || ''} ${getArtworkDate(a)}`.toLowerCase();
           if (!hay.includes(q)) return false;
         }
         return true;
+      });
+
+      // Sortierung nach Erstellungsdatum oder Preis
+      filteredArtworks.sort((a, b) => {
+        if (state.sortOrder === 'date_asc') return getArtworkDate(a).localeCompare(getArtworkDate(b));
+        if (state.sortOrder === 'price_asc') return Number(a.price_chf) - Number(b.price_chf);
+        if (state.sortOrder === 'price_desc') return Number(b.price_chf) - Number(a.price_chf);
+        return getArtworkDate(b).localeCompare(getArtworkDate(a));
       });
 
       // 2. DIY-Kits & Zines filtern
@@ -2530,11 +2878,12 @@
 
       const specs = [
         ['WERK-ID', art.artwork_code],
+        ['KATEGORIE', getCategoryMeta(art.category).name_de],
+        ['ERSTELLUNGSDATUM', getArtworkDate(art)],
         ['MEDIUM', art.medium],
-        ['PAPIER / TRÄGER', `${art.paper_type || 'Bütten'} ${art.paper_weight_gsm ? `(${art.paper_weight_gsm} g/m²)` : ''}`],
-        ['DIMENSIONEN', `${art.dimensions_mm} (${art.format_label || ''})`],
-        ['BELICHTUNG', art.exposure_time || 'Handgezeichnet im Atelier'],
-        ['UV / OPTIK', art.uv_source || art.aperture || 'Tageslicht / Atelier'],
+        ['MATERIAL / TRÄGER', getMaterialDisplay(art)],
+        ['RAHMUNG', getFramingDisplay(art)],
+        ['DIMENSIONEN', `${art.dimensions_mm}${art.format_label ? ` (${art.format_label})` : ''}`],
         ['EDITION', `${art.edition_remaining}/${art.edition_size} (${art.edition_type})`]
       ];
 
@@ -2614,11 +2963,13 @@
         </div>
         <div style="padding:6px 0; border-bottom:1px dashed #000;">
           <div><b>WERK-ID:</b> ${art.artwork_code}</div>
+          <div><b>DATUM:</b> ${getArtworkDate(art)}</div>
           <div><b>TITEL:</b> ${art.title_de}</div>
           <div><b>SERIE:</b> ${art.series_name || '-'}</div>
           <div><b>MEDIUM:</b> ${art.medium}</div>
-          <div><b>FORMAT:</b> ${art.dimensions_mm} (${art.paper_weight_gsm || 300} g/m²)</div>
-          ${art.exposure_time ? `<div><b>BELICHTUNG:</b> ${art.exposure_time}</div>` : ''}
+          <div><b>MATERIAL:</b> ${getMaterialDisplay(art)}</div>
+          <div><b>RAHMUNG:</b> ${getFramingDisplay(art)}</div>
+          <div><b>FORMAT:</b> ${art.dimensions_mm}</div>
           <div><b>EDITION:</b> ${art.edition_type.toUpperCase()} (${art.edition_size})</div>
           <div><b>PREIS:</b> ${Number(art.price_chf).toFixed(2)} CHF</div>
         </div>
@@ -2808,14 +3159,34 @@
         });
         btn.className = 'admin-tab-btn px-3 py-1.5 bg-neutral-800 text-white font-bold border-t border-x border-neutral-600';
 
-        ['artworks', 'products', 'workshops', 'translations'].forEach(tab => {
+        ['artworks', 'products', 'workshops', 'categories', 'translations'].forEach(tab => {
           document.getElementById(`admin-tab-${tab}`).classList.toggle('hidden', tab !== target);
         });
       });
     });
 
+    let currentProdImageCanvas = null;
+    let currentWsImageCanvas = null;
+    let isEditingArtwork = false;
+
+    function autoUpdateArtworkCodeIfNew() {
+      if (isEditingArtwork) return;
+      const catSlug = document.getElementById('art-category').value;
+      const dateVal = document.getElementById('art-created-date').value;
+      if (catSlug && dateVal) {
+        document.getElementById('art-code').value = calculateArtworkCode(catSlug, dateVal);
+      }
+    }
+
     // Live 1-Bit Dither Studio im Admin-Panel
     function initAdminPreviewCanvas() {
+      const dateInput = document.getElementById('art-created-date');
+      if (dateInput && !dateInput.value) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+      }
+      populateCategorySelects();
+      autoUpdateArtworkCodeIfNew();
+
       if (!currentAdminImageCanvas) {
         currentAdminImageCanvas = renderProceduralColorCanvas({
           artwork_code: document.getElementById('art-code').value || 'NEU-001',
@@ -2823,6 +3194,60 @@
         }, 400, 400);
       }
       updateAdminDitherPreview();
+      initSecondaryAdminCanvases();
+    }
+
+    function initSecondaryAdminCanvases() {
+      if (!currentProdImageCanvas) {
+        currentProdImageCanvas = renderProceduralColorCanvas({ sku: 'KIT-01', category: 'diy_camera_kit' }, 400, 400);
+      }
+      drawDitherAndColorToCanvases(currentProdImageCanvas, 'prod-dither-preview', 'prod-color-preview');
+
+      if (!currentWsImageCanvas) {
+        currentWsImageCanvas = renderProceduralColorCanvas({ workshop_code: 'WS-01', category: 'cyanotype' }, 400, 400);
+      }
+      drawDitherAndColorToCanvases(currentWsImageCanvas, 'ws-dither-preview', 'ws-color-preview');
+    }
+
+    function drawDitherAndColorToCanvases(sourceCanvas, ditherCanvasId, colorCanvasId) {
+      if (!sourceCanvas) return;
+      const dithered = apply1BitDitherToCanvas(sourceCanvas, 384, { algorithm: 'atkinson', threshold: 128, contrast: 1.15 });
+      const dEl = document.getElementById(ditherCanvasId);
+      const cEl = document.getElementById(colorCanvasId);
+      if (dEl) {
+        dEl.width = dithered.width;
+        dEl.height = dithered.height;
+        dEl.getContext('2d').drawImage(dithered, 0, 0);
+      }
+      if (cEl) {
+        cEl.width = sourceCanvas.width;
+        cEl.height = sourceCanvas.height;
+        cEl.getContext('2d').drawImage(sourceCanvas, 0, 0);
+      }
+    }
+
+    function bindImageFileToCanvas(inputId, onLoaded) {
+      const inp = document.getElementById(inputId);
+      if (!inp) return;
+      inp.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const img = new Image();
+          img.onload = () => {
+            const maxDim = 1200;
+            const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+            const c = document.createElement('canvas');
+            c.width = Math.round(img.width * scale);
+            c.height = Math.round(img.height * scale);
+            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            onLoaded(c);
+          };
+          img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
     }
 
     function updateAdminDitherPreview() {
@@ -2851,15 +3276,19 @@
       colorPreview.getContext('2d').drawImage(currentAdminImageCanvas, 0, 0);
 
       document.getElementById('prev-code').textContent = `ID: ${document.getElementById('art-code').value || 'NEU-001'}`;
+      document.getElementById('prev-date').textContent = `DATUM: ${document.getElementById('art-created-date').value || '--'}`;
       document.getElementById('prev-title').textContent = document.getElementById('art-title-de').value || 'WERK-TITEL';
-      document.getElementById('prev-meta').textContent = `${document.getElementById('art-medium').value || 'Medium'} • ${document.getElementById('art-dims').value || 'Format'}`;
+      document.getElementById('prev-meta').textContent = `${document.getElementById('art-medium').value || 'Medium'} • ${document.getElementById('art-framing').value || 'Ohne Rahmen'}`;
       document.getElementById('prev-price').textContent = `${Number(document.getElementById('art-price').value || 0).toFixed(2)} CHF`;
     }
 
-    ['dither-algo', 'dither-threshold', 'dither-contrast', 'art-code', 'art-title-de', 'art-medium', 'art-dims', 'art-price', 'art-category'].forEach(id => {
+    ['dither-algo', 'dither-threshold', 'dither-contrast', 'art-code', 'art-title-de', 'art-medium', 'art-dims', 'art-price', 'art-category', 'art-created-date', 'art-framing'].forEach(id => {
       const el = document.getElementById(id);
       if (el) {
         el.addEventListener('input', () => {
+          if (id === 'art-category' || id === 'art-created-date') {
+            autoUpdateArtworkCodeIfNew();
+          }
           if (id === 'art-category' && !document.getElementById('admin-img-input').files.length) {
             currentAdminImageCanvas = null;
             initAdminPreviewCanvas();
@@ -2870,30 +3299,54 @@
       }
     });
 
-    // Eigenes Bild im Admin-Panel auswählen
-    document.getElementById('admin-img-input').addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const img = new Image();
-        img.onload = () => {
-          const maxDim = 1200;
-          const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
-          const c = document.createElement('canvas');
-          c.width = Math.round(img.width * scale);
-          c.height = Math.round(img.height * scale);
-          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-          currentAdminImageCanvas = c;
-          updateAdminDitherPreview();
-        };
-        img.src = ev.target.result;
-      };
-      reader.readAsDataURL(file);
+    document.getElementById('btn-recalc-code').addEventListener('click', () => {
+      sound.playClick();
+      const catSlug = document.getElementById('art-category').value;
+      const dateVal = document.getElementById('art-created-date').value;
+      document.getElementById('art-code').value = calculateArtworkCode(catSlug, dateVal);
+      updateAdminDitherPreview();
+    });
+
+    // Foto-Uploads für Werke, Produkte & Workshops binden
+    bindImageFileToCanvas('admin-img-input', (c) => {
+      currentAdminImageCanvas = c;
+      updateAdminDitherPreview();
+    });
+    bindImageFileToCanvas('prod-img-input', (c) => {
+      currentProdImageCanvas = c;
+      drawDitherAndColorToCanvases(c, 'prod-dither-preview', 'prod-color-preview');
+    });
+    bindImageFileToCanvas('ws-img-input', (c) => {
+      currentWsImageCanvas = c;
+      drawDitherAndColorToCanvases(c, 'ws-dither-preview', 'ws-color-preview');
     });
 
     function canvasToBlob(canvas, mimeType = 'image/webp', quality = 0.85) {
       return new Promise(resolve => canvas.toBlob(resolve, mimeType, quality));
+    }
+
+    async function uploadImagePairToStorage(folderPrefix, itemKey, ditherCanvas, colorCanvas) {
+      let ditherUrl = ditherCanvas.toDataURL('image/png');
+      let colorUrl = colorCanvas.toDataURL('image/webp', 0.85);
+      try {
+        const ditherBlob = await canvasToBlob(ditherCanvas, 'image/png');
+        const colorBlob = await canvasToBlob(colorCanvas, 'image/webp', 0.85);
+        const ts = Date.now();
+        const ditherPath = `${folderPrefix}/${itemKey}/dither_384_${ts}.png`;
+        const colorPath = `${folderPrefix}/${itemKey}/color_feed_800_${ts}.webp`;
+
+        const [up1, up2] = await Promise.all([
+          supabaseClient.storage.from('public-artworks').upload(ditherPath, ditherBlob, { upsert: true, contentType: 'image/png' }),
+          supabaseClient.storage.from('public-artworks').upload(colorPath, colorBlob, { upsert: true, contentType: 'image/webp' })
+        ]);
+        if (!up1.error && !up2.error) {
+          ditherUrl = supabaseClient.storage.from('public-artworks').getPublicUrl(ditherPath).data.publicUrl;
+          colorUrl = supabaseClient.storage.from('public-artworks').getPublicUrl(colorPath).data.publicUrl;
+        }
+      } catch (err) {
+        console.warn('Storage Upload Fallback auf DataURL:', err);
+      }
+      return { ditherUrl, colorUrl };
     }
 
     // Kunstwerk in Supabase Storage & Datenbank speichern
@@ -2904,32 +3357,16 @@
 
       const code = document.getElementById('art-code').value.trim().toUpperCase();
       const titleDe = document.getElementById('art-title-de').value.trim();
+      const createdDate = document.getElementById('art-created-date').value || new Date().toISOString().split('T')[0];
+      const createdYear = Number(createdDate.slice(0, 4)) || new Date().getFullYear();
       const slug = `${code}-${titleDe}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
       const ditherCanvas = document.getElementById('admin-dither-preview-canvas');
       const colorCanvas = document.getElementById('admin-color-preview-canvas');
+      const { ditherUrl, colorUrl } = await uploadImagePairToStorage('artworks', code, ditherCanvas, colorCanvas);
 
-      let ditherUrl = ditherCanvas.toDataURL('image/png');
-      let colorUrl = colorCanvas.toDataURL('image/webp', 0.85);
-
-      // Versuch: Upload in Supabase Storage Bucket 'public-artworks'
-      try {
-        const ditherBlob = await canvasToBlob(ditherCanvas, 'image/png');
-        const colorBlob = await canvasToBlob(colorCanvas, 'image/webp', 0.85);
-
-        const ditherPath = `artworks/${code}/dither_384_${Date.now()}.png`;
-        const colorPath = `artworks/${code}/color_feed_800_${Date.now()}.webp`;
-
-        const up1 = await supabaseClient.storage.from('public-artworks').upload(ditherPath, ditherBlob, { upsert: true, contentType: 'image/png' });
-        const up2 = await supabaseClient.storage.from('public-artworks').upload(colorPath, colorBlob, { upsert: true, contentType: 'image/webp' });
-
-        if (!up1.error && !up2.error) {
-          ditherUrl = supabaseClient.storage.from('public-artworks').getPublicUrl(ditherPath).data.publicUrl;
-          colorUrl = supabaseClient.storage.from('public-artworks').getPublicUrl(colorPath).data.publicUrl;
-        }
-      } catch (storageErr) {
-        console.warn('Storage Upload Fallback auf DataURL:', storageErr);
-      }
+      const materialSpec = document.getElementById('art-material-spec').value.trim();
+      const framingVal = document.getElementById('art-framing').value.trim() || 'Ohne Rahmen';
 
       const payload = {
         artwork_code: code,
@@ -2938,11 +3375,14 @@
         description_de: document.getElementById('art-desc-de').value.trim(),
         category: document.getElementById('art-category').value,
         series_name: document.getElementById('art-series').value.trim() || 'Atelier-Serie',
+        created_date: createdDate,
+        created_year: createdYear,
         medium: document.getElementById('art-medium').value.trim(),
-        paper_weight_gsm: Number(document.getElementById('art-gsm').value) || 300,
+        material_spec: materialSpec || null,
+        paper_type: materialSpec || null,
+        framing_status: framingVal,
         dimensions_mm: document.getElementById('art-dims').value.trim(),
         format_label: document.getElementById('art-format').value.trim() || 'Original',
-        exposure_time: document.getElementById('art-exposure').value.trim() || null,
         edition_type: Number(document.getElementById('art-ed-size').value) > 1 ? 'limited_edition' : 'original',
         edition_size: Number(document.getElementById('art-ed-size').value) || 1,
         edition_remaining: Number(document.getElementById('art-ed-rem').value) ?? 1,
@@ -2956,11 +3396,12 @@
       const { error } = await supabaseClient.from('artworks').upsert(payload, { onConflict: 'artwork_code' });
 
       if (error) {
-        statusEl.textContent = `Fehler beim Speichern (bitte RLS Admin-Status prüfen): ${error.message}`;
+        statusEl.textContent = `Fehler beim Speichern (bitte Schema-Update & RLS prüfen): ${error.message}`;
         statusEl.className = 'text-[11px] font-bold text-red-400';
       } else {
-        statusEl.textContent = `✓ Werk ${code} erfolgreich in Supabase gespeichert!`;
+        statusEl.textContent = `✓ Werk ${code} (${createdDate}) erfolgreich in Supabase gespeichert!`;
         statusEl.className = 'text-[11px] font-bold text-emerald-400';
+        isEditingArtwork = false;
         await loadAllSupabaseData();
         renderAdminTables();
       }
@@ -2972,8 +3413,10 @@
       tbody.innerHTML = state.artworks.map(a => `
         <tr>
           <td class="py-1.5 px-2 font-bold text-amber-300">${a.artwork_code}</td>
+          <td class="py-1.5 px-2 text-neutral-400">${getArtworkDate(a)}</td>
           <td class="py-1.5 px-2">${a.title_de}</td>
-          <td class="py-1.5 px-2 text-neutral-400">${a.category}</td>
+          <td class="py-1.5 px-2 text-neutral-400">${getCategoryMeta(a.category).name_de}</td>
+          <td class="py-1.5 px-2 text-neutral-300">${getFramingDisplay(a)}</td>
           <td class="py-1.5 px-2 font-bold">${Number(a.price_chf).toFixed(2)} CHF</td>
           <td class="py-1.5 px-2">
             <span class="px-1.5 py-0.5 border ${a.status === 'sold' ? 'border-red-600 text-red-300' : 'border-emerald-600 text-emerald-300'} text-[10px]">
@@ -2994,16 +3437,18 @@
         btn.addEventListener('click', () => {
           const art = state.artworks.find(x => x.artwork_code === btn.getAttribute('data-edit-art'));
           if (!art) return;
+          isEditingArtwork = true;
           document.getElementById('art-code').value = art.artwork_code;
+          document.getElementById('art-created-date').value = getArtworkDate(art);
           document.getElementById('art-category').value = art.category;
           document.getElementById('art-price').value = art.price_chf;
           document.getElementById('art-title-de').value = art.title_de;
           document.getElementById('art-series').value = art.series_name || '';
           document.getElementById('art-medium').value = art.medium || '';
-          document.getElementById('art-gsm').value = art.paper_weight_gsm || 300;
+          document.getElementById('art-material-spec').value = getMaterialDisplay(art);
+          document.getElementById('art-framing').value = getFramingDisplay(art);
           document.getElementById('art-dims').value = art.dimensions_mm || '';
           document.getElementById('art-format').value = art.format_label || '';
-          document.getElementById('art-exposure').value = art.exposure_time || '';
           document.getElementById('art-status').value = art.status || 'available';
           document.getElementById('art-ed-size').value = art.edition_size || 1;
           document.getElementById('art-ed-rem').value = art.edition_remaining ?? 1;
@@ -3037,41 +3482,157 @@
         });
       });
 
-      // 2. Products Liste im Admin
+      // 2. Products Liste im Admin (inkl. EDIT & LÖSCHEN)
       const prodList = document.getElementById('admin-products-list');
       if (prodList) {
         prodList.innerHTML = `
           <div class="font-bold text-neutral-300 mb-2">AKTUELLE PRODUKTE (${state.products.length}):</div>
           <div class="space-y-1.5">
             ${state.products.map(p => `
-              <div class="flex items-center justify-between border-b border-neutral-800 py-1 text-[11px]">
+              <div class="flex flex-wrap items-center justify-between border-b border-neutral-800 py-1.5 text-[11px] gap-2">
                 <span class="text-amber-300 font-bold">${p.sku}</span>
-                <span class="text-neutral-200 flex-1 px-3 truncate">${p.title_de}</span>
+                <span class="text-neutral-200 flex-1 truncate">${p.title_de}</span>
                 <span class="text-neutral-400">Lager: ${p.stock_quantity} • ${Number(p.price_chf).toFixed(2)} CHF</span>
+                <div class="flex gap-1">
+                  <button type="button" data-edit-prod="${p.sku}" class="px-2 py-0.5 bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-600">EDIT</button>
+                  <button type="button" data-del-prod="${p.sku}" class="px-2 py-0.5 bg-red-950/60 hover:bg-red-800 text-red-200 border border-red-700">LÖSCHEN</button>
+                </div>
               </div>
             `).join('')}
           </div>
         `;
+
+        prodList.querySelectorAll('[data-edit-prod]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const p = state.products.find(x => x.sku === btn.getAttribute('data-edit-prod'));
+            if (!p) return;
+            document.getElementById('prod-sku').value = p.sku;
+            document.getElementById('prod-title').value = p.title_de;
+            document.getElementById('prod-subtitle').value = p.subtitle_de || '';
+            document.getElementById('prod-type').value = p.product_type || 'diy_camera_kit';
+            document.getElementById('prod-price').value = p.price_chf;
+            document.getElementById('prod-stock').value = p.stock_quantity;
+            document.getElementById('prod-dims').value = p.dimensions_mm || '';
+            document.getElementById('prod-desc').value = p.description_de || '';
+            document.getElementById('prod-img-input').value = '';
+            currentProdImageCanvas = renderProceduralColorCanvas(p, 400, 400);
+            drawDitherAndColorToCanvases(currentProdImageCanvas, 'prod-dither-preview', 'prod-color-preview');
+          });
+        });
+
+        prodList.querySelectorAll('[data-del-prod]').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const sku = btn.getAttribute('data-del-prod');
+            if (!confirm(`Produkt ${sku} wirklich löschen?`)) return;
+            await supabaseClient.from('products').delete().eq('sku', sku);
+            await loadAllSupabaseData();
+            renderAdminTables();
+          });
+        });
       }
 
-      // 3. Workshops Liste im Admin
+      // 3. Workshops Liste im Admin (inkl. EDIT & LÖSCHEN)
       const wsList = document.getElementById('admin-workshops-list');
       if (wsList) {
         wsList.innerHTML = `
           <div class="font-bold text-neutral-300 mb-2">AKTUELLE WORKSHOPS (${state.workshops.length}):</div>
           <div class="space-y-1.5">
             ${state.workshops.map(w => `
-              <div class="flex items-center justify-between border-b border-neutral-800 py-1 text-[11px]">
+              <div class="flex flex-wrap items-center justify-between border-b border-neutral-800 py-1.5 text-[11px] gap-2">
                 <span class="text-amber-300 font-bold">${w.workshop_code}</span>
-                <span class="text-neutral-200 flex-1 px-3 truncate">${w.title_de} (${w.location_city})</span>
+                <span class="text-neutral-200 flex-1 truncate">${w.title_de} (${w.location_city})</span>
                 <span class="text-neutral-400">Plätze: ${w.seats_remaining}/${w.max_participants} • ${Number(w.price_chf).toFixed(2)} CHF</span>
+                <div class="flex gap-1">
+                  <button type="button" data-edit-ws="${w.workshop_code}" class="px-2 py-0.5 bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-600">EDIT</button>
+                  <button type="button" data-del-ws="${w.workshop_code}" class="px-2 py-0.5 bg-red-950/60 hover:bg-red-800 text-red-200 border border-red-700">LÖSCHEN</button>
+                </div>
               </div>
             `).join('')}
           </div>
         `;
+
+        wsList.querySelectorAll('[data-edit-ws]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const w = state.workshops.find(x => x.workshop_code === btn.getAttribute('data-edit-ws'));
+            if (!w) return;
+            document.getElementById('ws-code').value = w.workshop_code;
+            document.getElementById('ws-title').value = w.title_de;
+            document.getElementById('ws-subtitle').value = w.subtitle_de || '';
+            document.getElementById('ws-topic').value = w.workshop_topic || 'cyanotype_outdoor';
+            document.getElementById('ws-city').value = w.location_city || '';
+            document.getElementById('ws-venue').value = w.location_venue || '';
+            if (w.start_time) {
+              const dt = new Date(w.start_time);
+              const localIso = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+              document.getElementById('ws-start').value = localIso;
+            }
+            document.getElementById('ws-duration').value = w.duration_hours || 4.0;
+            document.getElementById('ws-price').value = w.price_chf;
+            document.getElementById('ws-seats').value = w.seats_remaining;
+            document.getElementById('ws-max-seats').value = w.max_participants;
+            document.getElementById('ws-status').value = w.status || 'open';
+            document.getElementById('ws-desc').value = w.description_de || '';
+            document.getElementById('ws-img-input').value = '';
+            currentWsImageCanvas = renderProceduralColorCanvas(w, 400, 400);
+            drawDitherAndColorToCanvases(currentWsImageCanvas, 'ws-dither-preview', 'ws-color-preview');
+          });
+        });
+
+        wsList.querySelectorAll('[data-del-ws]').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const code = btn.getAttribute('data-del-ws');
+            if (!confirm(`Workshop ${code} wirklich löschen?`)) return;
+            await supabaseClient.from('workshops').delete().eq('workshop_code', code);
+            await loadAllSupabaseData();
+            renderAdminTables();
+          });
+        });
       }
 
-      // 4. Translations Liste im Admin
+      // 4. Categories Liste im Admin
+      const catList = document.getElementById('admin-categories-list');
+      if (catList) {
+        catList.innerHTML = `
+          <div class="font-bold text-neutral-300 mb-2">AKTIVE KATEGORIEN & WERK-ID KÜRZEL (${state.categories.length}):</div>
+          <div class="space-y-1.5">
+            ${state.categories.map(c => `
+              <div class="flex flex-wrap items-center justify-between border-b border-neutral-800 py-1.5 text-[11px] gap-2">
+                <span class="px-2 py-0.5 bg-neutral-800 text-amber-300 font-bold border border-neutral-600">${c.prefix}</span>
+                <span class="text-neutral-400 w-28 truncate">${c.slug}</span>
+                <span class="text-neutral-200 flex-1 truncate">${c.name_de} ${c.name_en ? `(${c.name_en})` : ''}</span>
+                <div class="flex gap-1">
+                  <button type="button" data-edit-cat="${c.slug}" class="px-2 py-0.5 bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-600">EDIT</button>
+                  <button type="button" data-del-cat="${c.slug}" class="px-2 py-0.5 bg-red-950/60 hover:bg-red-800 text-red-200 border border-red-700">LÖSCHEN</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+
+        catList.querySelectorAll('[data-edit-cat]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const c = state.categories.find(x => x.slug === btn.getAttribute('data-edit-cat'));
+            if (!c) return;
+            document.getElementById('cat-slug').value = c.slug;
+            document.getElementById('cat-prefix').value = c.prefix;
+            document.getElementById('cat-name-de').value = c.name_de;
+            document.getElementById('cat-name-en').value = c.name_en || '';
+            document.getElementById('cat-sort').value = c.sort_order ?? 10;
+          });
+        });
+
+        catList.querySelectorAll('[data-del-cat]').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const slug = btn.getAttribute('data-del-cat');
+            if (!confirm(`Kategorie ${slug} wirklich löschen?`)) return;
+            await supabaseClient.from('categories').delete().eq('slug', slug);
+            await loadAllSupabaseData();
+            renderAdminTables();
+          });
+        });
+      }
+
+      // 5. Translations Liste im Admin
       const trList = document.getElementById('admin-translations-list');
       const trRows = Object.values(state.translations);
       trList.innerHTML = `
@@ -3088,9 +3649,27 @@
     }
 
     document.getElementById('btn-reset-artwork-form').addEventListener('click', () => {
+      isEditingArtwork = false;
       document.getElementById('form-admin-artwork').reset();
+      document.getElementById('art-created-date').value = new Date().toISOString().split('T')[0];
       currentAdminImageCanvas = null;
       initAdminPreviewCanvas();
+    });
+
+    document.getElementById('btn-reset-product-form').addEventListener('click', () => {
+      document.getElementById('form-admin-product').reset();
+      currentProdImageCanvas = null;
+      initSecondaryAdminCanvases();
+    });
+
+    document.getElementById('btn-reset-workshop-form').addEventListener('click', () => {
+      document.getElementById('form-admin-workshop').reset();
+      currentWsImageCanvas = null;
+      initSecondaryAdminCanvases();
+    });
+
+    document.getElementById('btn-reset-category-form').addEventListener('click', () => {
+      document.getElementById('form-admin-category').reset();
     });
 
     document.getElementById('brand-home-trigger').addEventListener('click', () => {
@@ -3098,60 +3677,133 @@
       document.getElementById('paper-viewport').scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    // Produkt im Admin speichern
+    // Produkt im Admin speichern (inkl. optionalem Foto-Upload)
     document.getElementById('form-admin-product').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const statusEl = document.getElementById('prod-save-status');
+      statusEl.textContent = 'Speichere Produkt...';
+
       const sku = document.getElementById('prod-sku').value.trim().toUpperCase();
       const titleDe = document.getElementById('prod-title').value.trim();
       const slug = `${sku}-${titleDe}`.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const existing = state.products.find(p => p.sku === sku);
+      const hasNewFile = document.getElementById('prod-img-input').files.length > 0;
+
+      let ditherUrl = existing?.image_dither_url || '';
+      let colorUrl = existing?.image_color_url || '';
+
+      if (hasNewFile || !existing) {
+        const res = await uploadImagePairToStorage(
+          'products',
+          sku,
+          document.getElementById('prod-dither-preview'),
+          document.getElementById('prod-color-preview')
+        );
+        ditherUrl = res.ditherUrl;
+        colorUrl = res.colorUrl;
+      }
 
       const payload = {
         sku,
         slug,
         title_de: titleDe,
+        subtitle_de: document.getElementById('prod-subtitle').value.trim() || null,
         product_type: document.getElementById('prod-type').value,
         price_chf: Number(document.getElementById('prod-price').value),
         stock_quantity: Number(document.getElementById('prod-stock').value),
         dimensions_mm: document.getElementById('prod-dims').value.trim(),
         description_de: document.getElementById('prod-desc').value.trim(),
-        image_dither_url: '',
-        image_color_url: '',
+        image_dither_url: ditherUrl,
+        image_color_url: colorUrl,
         is_published: true
       };
 
-      await supabaseClient.from('products').upsert(payload, { onConflict: 'sku' });
+      const { error } = await supabaseClient.from('products').upsert(payload, { onConflict: 'sku' });
+      statusEl.textContent = error ? `Fehler: ${error.message}` : `✓ Produkt ${sku} gespeichert!`;
+      statusEl.className = error ? 'text-[11px] font-bold text-red-400' : 'text-[11px] font-bold text-emerald-400';
       await loadAllSupabaseData();
       renderAdminTables();
     });
 
-    // Workshop im Admin speichern
+    // Workshop im Admin speichern (inkl. optionalem Foto-Upload)
     document.getElementById('form-admin-workshop').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const statusEl = document.getElementById('ws-save-status');
+      statusEl.textContent = 'Speichere Workshop...';
+
       const code = document.getElementById('ws-code').value.trim().toUpperCase();
       const titleDe = document.getElementById('ws-title').value.trim();
       const slug = `${code}-${titleDe}`.toLowerCase().replace(/[^a-z0-9]+/g, '-');
       const startVal = document.getElementById('ws-start').value;
+      const durationHrs = Number(document.getElementById('ws-duration').value) || 4.0;
       const startIso = new Date(startVal).toISOString();
-      const endIso = new Date(new Date(startVal).getTime() + 4 * 3600 * 1000).toISOString();
+      const endIso = new Date(new Date(startVal).getTime() + durationHrs * 3600 * 1000).toISOString();
+      const existing = state.workshops.find(w => w.workshop_code === code);
+      const hasNewFile = document.getElementById('ws-img-input').files.length > 0;
+
+      let ditherUrl = existing?.image_dither_url || null;
+      let colorUrl = existing?.image_color_url || null;
+
+      if (hasNewFile || !existing) {
+        const res = await uploadImagePairToStorage(
+          'workshops',
+          code,
+          document.getElementById('ws-dither-preview'),
+          document.getElementById('ws-color-preview')
+        );
+        ditherUrl = res.ditherUrl;
+        colorUrl = res.colorUrl;
+      }
 
       const payload = {
         workshop_code: code,
         slug,
         title_de: titleDe,
+        subtitle_de: document.getElementById('ws-subtitle').value.trim() || null,
         workshop_topic: document.getElementById('ws-topic').value,
         location_city: document.getElementById('ws-city').value.trim(),
         location_venue: document.getElementById('ws-venue').value.trim(),
         start_time: startIso,
         end_time: endIso,
-        duration_hours: 4.0,
-        max_participants: Number(document.getElementById('ws-seats').value) || 8,
-        seats_remaining: Number(document.getElementById('ws-seats').value) || 8,
+        duration_hours: durationHrs,
+        max_participants: Number(document.getElementById('ws-max-seats').value) || 8,
+        seats_remaining: Number(document.getElementById('ws-seats').value) || 0,
         price_chf: Number(document.getElementById('ws-price').value),
+        status: document.getElementById('ws-status').value || 'open',
         description_de: document.getElementById('ws-desc').value.trim(),
+        image_dither_url: ditherUrl,
+        image_color_url: colorUrl,
         is_published: true
       };
 
-      await supabaseClient.from('workshops').upsert(payload, { onConflict: 'workshop_code' });
+      const { error } = await supabaseClient.from('workshops').upsert(payload, { onConflict: 'workshop_code' });
+      statusEl.textContent = error ? `Fehler: ${error.message}` : `✓ Workshop ${code} gespeichert!`;
+      statusEl.className = error ? 'text-[11px] font-bold text-red-400' : 'text-[11px] font-bold text-emerald-400';
+      await loadAllSupabaseData();
+      renderAdminTables();
+    });
+
+    // Kategorie im Admin speichern
+    document.getElementById('form-admin-category').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const statusEl = document.getElementById('cat-save-status');
+      const slug = document.getElementById('cat-slug').value.trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_');
+      const prefix = document.getElementById('cat-prefix').value.trim().toUpperCase();
+      const nameDe = document.getElementById('cat-name-de').value.trim();
+      const nameEn = document.getElementById('cat-name-en').value.trim() || nameDe;
+      const sortOrder = Number(document.getElementById('cat-sort').value) || 50;
+
+      const { error } = await supabaseClient.from('categories').upsert({
+        slug,
+        prefix,
+        name_de: nameDe,
+        name_en: nameEn,
+        sort_order: sortOrder,
+        is_active: true
+      }, { onConflict: 'slug' });
+
+      statusEl.textContent = error ? `Fehler: ${error.message}` : `✓ Kategorie ${nameDe} [${prefix}] gespeichert!`;
+      statusEl.className = error ? 'text-[11px] font-bold text-red-400' : 'text-[11px] font-bold text-emerald-400';
       await loadAllSupabaseData();
       renderAdminTables();
     });
@@ -3177,10 +3829,24 @@
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active-filter'));
         btn.classList.add('active-filter');
         state.activeFilter = btn.getAttribute('data-filter');
+        renderCategoryPillBar();
         renderSeriesPillBar();
         renderReceiptFeed(true);
         document.getElementById('paper-viewport').scrollTo({ top: 0, behavior: 'smooth' });
       });
+    });
+
+    // Jahr-Filter & Sortierung
+    document.getElementById('filter-year').addEventListener('change', (e) => {
+      sound.playClick();
+      state.activeYear = e.target.value;
+      renderReceiptFeed(true);
+    });
+
+    document.getElementById('sort-order').addEventListener('change', (e) => {
+      sound.playClick();
+      state.sortOrder = e.target.value;
+      renderReceiptFeed(true);
     });
 
     // Live-Suche auf dem Beleg
