@@ -2042,37 +2042,17 @@
           applyLanguageToDOM();
         }
 
-        // 2. Artworks (Live Supabase + ergänzende Archivwerke ohne Duplikate)
-        const dbArtworks = artRes.data || [];
-        const dbCodes = new Set(dbArtworks.map(a => a.artwork_code));
-        state.artworks = [
-          ...dbArtworks,
-          ...FALLBACK_ARCHIVE_ARTWORKS.filter(f => !dbCodes.has(f.artwork_code))
-        ];
+        // 2. Artworks (Direkt aus Supabase – keine fest einprogrammierten Demo-Einträge beimischen)
+        state.artworks = artRes.error ? [...FALLBACK_ARCHIVE_ARTWORKS] : (artRes.data || []);
 
-        // 3. Products (Live Supabase + ergänzende Kits)
-        const dbProducts = prodRes.data || [];
-        const dbSkus = new Set(dbProducts.map(p => p.sku));
-        state.products = [
-          ...dbProducts,
-          ...FALLBACK_PRODUCTS.filter(f => !dbSkus.has(f.sku))
-        ];
+        // 3. Products (Direkt aus Supabase)
+        state.products = prodRes.error ? [...FALLBACK_PRODUCTS] : (prodRes.data || []);
 
-        // 4. Workshops
-        const dbWorkshops = wsRes.data || [];
-        const dbWsCodes = new Set(dbWorkshops.map(w => w.workshop_code));
-        state.workshops = [
-          ...dbWorkshops,
-          ...FALLBACK_WORKSHOPS.filter(f => !dbWsCodes.has(f.workshop_code))
-        ];
+        // 4. Workshops (Direkt aus Supabase)
+        state.workshops = wsRes.error ? [...FALLBACK_WORKSHOPS] : (wsRes.data || []);
 
-        // 5. Exhibitions / Logbuch
-        const dbExh = exhRes.data || [];
-        const dbExhCodes = new Set(dbExh.map(e => e.exhibition_code));
-        state.exhibitions = [
-          ...dbExh,
-          ...FALLBACK_EXHIBITIONS.filter(f => !dbExhCodes.has(f.exhibition_code))
-        ];
+        // 5. Exhibitions / Logbuch (Direkt aus Supabase, falls noch leer optional Logbuch)
+        state.exhibitions = exhRes.error ? [...FALLBACK_EXHIBITIONS] : (exhRes.data || []);
 
         populateCategorySelects();
         populateYearFilter();
@@ -3544,9 +3524,17 @@
           btn.addEventListener('click', async () => {
             const sku = btn.getAttribute('data-del-prod');
             if (!confirm(`Produkt ${sku} wirklich löschen?`)) return;
-            await supabaseClient.from('products').delete().eq('sku', sku);
-            await loadAllSupabaseData();
-            renderAdminTables();
+            const statusEl = document.getElementById('prod-save-status');
+            const { error } = await supabaseClient.from('products').delete().eq('sku', sku);
+            if (error) {
+              statusEl.textContent = `Fehler beim Löschen: ${error.message}`;
+              statusEl.className = 'text-[11px] font-bold text-red-400';
+            } else {
+              statusEl.textContent = `✓ Produkt ${sku} gelöscht.`;
+              statusEl.className = 'text-[11px] font-bold text-emerald-400';
+              await loadAllSupabaseData();
+              renderAdminTables();
+            }
           });
         });
       }
@@ -3602,9 +3590,17 @@
           btn.addEventListener('click', async () => {
             const code = btn.getAttribute('data-del-ws');
             if (!confirm(`Workshop ${code} wirklich löschen?`)) return;
-            await supabaseClient.from('workshops').delete().eq('workshop_code', code);
-            await loadAllSupabaseData();
-            renderAdminTables();
+            const statusEl = document.getElementById('ws-save-status');
+            const { error } = await supabaseClient.from('workshops').delete().eq('workshop_code', code);
+            if (error) {
+              statusEl.textContent = `Fehler beim Löschen: ${error.message}`;
+              statusEl.className = 'text-[11px] font-bold text-red-400';
+            } else {
+              statusEl.textContent = `✓ Workshop ${code} gelöscht.`;
+              statusEl.className = 'text-[11px] font-bold text-emerald-400';
+              await loadAllSupabaseData();
+              renderAdminTables();
+            }
           });
         });
       }
@@ -3645,9 +3641,17 @@
           btn.addEventListener('click', async () => {
             const slug = btn.getAttribute('data-del-cat');
             if (!confirm(`Kategorie ${slug} wirklich löschen?`)) return;
-            await supabaseClient.from('categories').delete().eq('slug', slug);
-            await loadAllSupabaseData();
-            renderAdminTables();
+            const statusEl = document.getElementById('cat-save-status');
+            const { error } = await supabaseClient.from('categories').delete().eq('slug', slug);
+            if (error) {
+              statusEl.textContent = `Fehler beim Löschen: ${error.message}`;
+              statusEl.className = 'text-[11px] font-bold text-red-400';
+            } else {
+              statusEl.textContent = `✓ Kategorie ${slug} gelöscht.`;
+              statusEl.className = 'text-[11px] font-bold text-emerald-400';
+              await loadAllSupabaseData();
+              renderAdminTables();
+            }
           });
         });
       }
